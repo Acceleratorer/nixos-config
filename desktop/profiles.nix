@@ -1,0 +1,256 @@
+{
+  caelestia-shell,
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+
+let
+  cfg = config.nixosCryoforge;
+  system = pkgs.stdenv.hostPlatform.system;
+
+  hyprlandTarget = "hyprland-session.target";
+  classicTarget = "nixos-cryoforge-classic.target";
+  caelestiaTarget = "nixos-cryoforge-caelestia.target";
+  fallbackService = "nixos-cryoforge-caelestia-fallback.service";
+  notificationBus = "org.freedesktop.Notifications";
+
+  classicServiceUnits = [
+    "waybar.service"
+    "mako.service"
+    "hyprpaper.service"
+    "hypridle.service"
+  ];
+
+  caelestiaPackage =
+    caelestia-shell.packages.${system}.caelestia-shell;
+  caelestiaCli = config.programs.caelestia.cli.package;
+
+  initialiseCaelestiaState = pkgs.writeShellScript "initialise-caelestia-state" ''
+    set -eu
+
+    state_home="''${XDG_STATE_HOME:-$HOME/.local/state}"
+    state_dir="$state_home/caelestia"
+    wallpaper_dir="$state_dir/wallpaper"
+
+    ${pkgs.coreutils}/bin/install -d -m 0700 "$state_dir" "$wallpaper_dir"
+
+    if [ ! -s "$state_dir/scheme.json" ]; then
+      ${caelestiaCli}/bin/caelestia scheme get --name >/dev/null
+    fi
+
+    if [ ! -s "$wallpaper_dir/path.txt" ]; then
+      ${pkgs.coreutils}/bin/printf '%s' \
+        '/etc/nixos-rice/wallpaper.png' > "$wallpaper_dir/path.txt"
+    fi
+  '';
+
+  startClassicFallback = pkgs.writeShellScript "start-classic-fallback" ''
+    exec ${pkgs.systemd}/bin/systemctl \
+      --user --no-block start ${classicTarget}
+  '';
+
+  mkClassicService =
+    description: execStart:
+    {
+      Unit = {
+        Description = description;
+        After = [ hyprlandTarget ];
+        PartOf = [ classicTarget ];
+        Conflicts = [ "caelestia.service" ];
+        ConditionEnvironment = "XDG_CURRENT_DESKTOP=Hyprland";
+      };
+
+      Service = {
+        Type = "exec";
+        ExecStart = execStart;
+        Restart = "on-failure";
+        RestartSec = "3s";
+        TimeoutStopSec = "5s";
+        Slice = "session.slice";
+      };
+
+      Install.WantedBy = [ classicTarget ];
+    };
+in
+{
+  options.nixosCryoforge = {
+    desktopProfile = lib.mkOption {
+      type = lib.types.enum [
+        "classic"
+        "caelestia"
+      ];
+      default = "classic";
+      description = "Hyprland desktop component ownership profile.";
+    };
+
+    palette = lib.mkOption {
+      type = lib.types.attrsOf lib.types.str;
+      readOnly = true;
+      default = import ./palette.nix;
+      description = "CryoForge palette tokens, not consumed by desktop components yet.";
+    };
+  };
+
+  config = {
+    programs.caelestia = {
+      enable = true;
+      package = caelestiaPackage;
+
+      systemd = {
+        enable = true;
+        target = caelestiaTarget;
+        environment = [
+          "QS_APP_ID=org.caelestia.shell"
+          "QS_ICON_THEME=Papirus"
+        ];
+      };
+
+      settings = {
+        background = {
+          enabled = true;
+          wallpaperEnabled = true;
+        };
+
+        general.idle = {
+          lockBeforeSleep = true;
+          inhibitWhenAudio = false;
+          inhibitWhenCharging = false;
+          timeouts = [
+            {
+              timeout = 300;
+              idleAction = "lock";
+            }
+            {
+              timeout = 360;
+              idleAction = "dpms off";
+              returnAction = "dpms on";
+            }
+            {
+              timeout = 1200;
+              idleAction = [ "suspend" ];
+            }
+          ];
+        };
+
+        paths.wallpaperDir = "/etc/nixos-rice";
+        services.smartScheme = false;
+      };
+
+      cli = {
+        enable = true;
+        settings.theme = {
+          enableTerm = false;
+          enableHypr = false;
+          enableDiscord = false;
+          enableSpicetify = false;
+          enablePandora = false;
+          enableFuzzel = false;
+          enableBtop = false;
+          enableNvtop = false;
+          enableHtop = false;
+          enableGtk = false;
+          enableQt = false;
+          enableWarp = false;
+          enableChromium = false;
+          enableZed = false;
+          enableCava = false;
+        };
+      };
+    };
+
+    xdg.dataFile."applications/org.caelestia.shell.desktop".text = ''
+      [Desktop Entry]
+      Type=Application
+      Name=Caelestia Shell
+      NoDisplay=true
+    '';
+
+    systemd.user.targets = {
+      hyprland-session.Unit = {
+        Description = "Hyprland compositor session";
+        Documentation = [ "man:systemd.special(7)" ];
+        BindsTo = [ "graphical-session.target" ];
+        Wants = [ "graphical-session-pre.target" ];
+        After = [ "graphical-session-pre.target" ];
+      };
+
+      nixos-cryoforge-classic = {
+        Unit = {
+          Description = "NixOS CryoForge classic desktop profile";
+          Conflicts = [ caelestiaTarget ];
+          PartOf = [ hyprlandTarget ];
+          After = [ hyprlandTarget ] ++ classicServiceUnits;
+        };
+        Install.WantedBy =
+          lib.optional (cfg.desktopProfile == "classic") hyprlandTarget;
+      };
+
+      nixos-cryoforge-caelestia = {
+        Unit = {
+          Description = "NixOS CryoForge Caelestia desktop profile";
+          Conflicts = [ classicTarget ];
+          PartOf = [ hyprlandTarget ];
+          After = [
+            hyprlandTarget
+            "caelestia.service"
+          ];
+        };
+        Install.WantedBy =
+          lib.optional (cfg.desktopProfile == "caelestia") hyprlandTarget;
+      };
+    };
+
+    systemd.user.services = {
+      waybar = mkClassicService
+        "Waybar for the NixOS CryoForge classic profile"
+        "${pkgs.waybar}/bin/waybar";
+
+      mako = mkClassicService
+        "Mako for the NixOS CryoForge classic profile"
+        "${pkgs.mako}/bin/mako";
+
+      hyprpaper = mkClassicService
+        "hyprpaper for the NixOS CryoForge classic profile"
+        "${pkgs.hyprpaper}/bin/hyprpaper";
+
+      hypridle = mkClassicService
+        "hypridle for the NixOS CryoForge classic profile"
+        "${pkgs.hypridle}/bin/hypridle";
+
+      caelestia = {
+        Unit = {
+          After = lib.mkForce [ hyprlandTarget ];
+          Conflicts = classicServiceUnits;
+          ConditionEnvironment = "XDG_CURRENT_DESKTOP=Hyprland";
+          OnFailure = [ fallbackService ];
+          StartLimitIntervalSec = "30s";
+          StartLimitBurst = 3;
+        };
+
+        Service = {
+          Type = lib.mkForce "dbus";
+          BusName = notificationBus;
+          ExecStartPre = initialiseCaelestiaState;
+          Restart = lib.mkForce "always";
+          RestartSec = lib.mkForce "3s";
+          TimeoutStartSec = "10s";
+          UMask = "0077";
+        };
+      };
+
+      nixos-cryoforge-caelestia-fallback = {
+        Unit = {
+          Description = "Fall back to the NixOS CryoForge classic profile";
+          After = [ "caelestia.service" ];
+        };
+
+        Service = {
+          Type = "oneshot";
+          ExecStart = startClassicFallback;
+        };
+      };
+    };
+  };
+}

@@ -1,15 +1,17 @@
-{ caelestia-shell, lib, pkgs, ... }:
+{ caelestia-shell, ... }:
 
-let
-  enableCaelestiaShellExperiment = true;
-in
 {
+  imports = [
+    caelestia-shell.homeManagerModules.default
+    ./desktop/profiles.nix
+  ];
+
+  # Change only this value, rebuild, then begin a new Hyprland session.
+  nixosCryoforge.desktopProfile = "classic";
+
   home = {
     username = "accelra";
     homeDirectory = "/home/accelra";
-    packages = lib.optionals enableCaelestiaShellExperiment [
-      caelestia-shell.packages.${pkgs.stdenv.hostPlatform.system}.caelestia-shell
-    ];
     stateVersion = "26.05";
   };
 
