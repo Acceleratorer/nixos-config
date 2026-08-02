@@ -111,7 +111,7 @@
 	asusctl 
   	git 
   	nodejs
-	codex
+	(pkgs.callPackage ./packages/codex.nix { })
 	discord
 	p7zip
 	rar  
