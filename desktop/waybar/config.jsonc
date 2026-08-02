@@ -1,0 +1,120 @@
+{
+  "layer": "top",
+  "position": "top",
+  "height": 38,
+  "margin-top": 8,
+  "margin-left": 10,
+  "margin-right": 10,
+  "spacing": 6,
+
+  "modules-left": [
+    "custom/launcher",
+    "hyprland/workspaces",
+    "hyprland/window"
+  ],
+  "modules-center": [
+    "clock"
+  ],
+  "modules-right": [
+    "tray",
+    "pulseaudio",
+    "network",
+    "bluetooth",
+    "cpu",
+    "memory",
+    "battery",
+    "custom/power"
+  ],
+
+  "custom/launcher": {
+    "format": " 󰣇 ",
+    "tooltip": false,
+    "on-click": "rofi -show drun"
+  },
+
+  "hyprland/workspaces": {
+    "disable-scroll": true,
+    "all-outputs": true,
+    "format": "{icon}",
+    "format-icons": {
+      "active": "",
+      "default": "",
+      "urgent": ""
+    },
+    "persistent-workspaces": {
+      "*": 5
+    }
+  },
+
+  "hyprland/window": {
+    "format": "{title}",
+    "max-length": 45,
+    "separate-outputs": true
+  },
+
+  "clock": {
+    "format": "  {:%H:%M}",
+    "format-alt": "󰃭  {:%A, %B %d, %Y}",
+    "tooltip-format": "<tt><small>{calendar}</small></tt>"
+  },
+
+  "tray": {
+    "icon-size": 16,
+    "spacing": 8
+  },
+
+  "pulseaudio": {
+    "format": "{icon} {volume}%",
+    "format-muted": "󰖁 muted",
+    "format-icons": {
+      "headphone": "",
+      "default": ["", "", ""]
+    },
+    "on-click": "pavucontrol",
+    "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
+    "scroll-step": 5
+  },
+
+  "network": {
+    "format-wifi": "  {signalStrength}%",
+    "format-ethernet": "󰈀 connected",
+    "format-disconnected": "󰖪 offline",
+    "tooltip-format": "{ifname}: {ipaddr}/{cidr}",
+    "on-click": "nm-connection-editor"
+  },
+
+  "bluetooth": {
+    "format": " {status}",
+    "format-connected": " {num_connections}",
+    "format-disabled": "󰂲",
+    "on-click": "blueman-manager"
+  },
+
+  "cpu": {
+    "format": "  {usage}%",
+    "interval": 2
+  },
+
+  "memory": {
+    "format": "  {percentage}%",
+    "interval": 2
+  },
+
+  "battery": {
+    "states": {
+      "warning": 30,
+      "critical": 15
+    },
+    "format": "{icon} {capacity}%",
+    "format-charging": "󰂄 {capacity}%",
+    "format-plugged": " {capacity}%",
+    "format-icons": ["󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"]
+  },
+
+  "custom/power": {
+    "format": "",
+    "tooltip": "Left: lock · Right: suspend",
+    "on-click": "hyprlock",
+    "on-click-right": "systemctl suspend"
+  }
+}

@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2560" height="1600" viewBox="0 0 2560 1600">
+  <defs>
+    <linearGradient id="base" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#080b18"/>
+      <stop offset="0.48" stop-color="#11152d"/>
+      <stop offset="1" stop-color="#1e1634"/>
+    </linearGradient>
+    <radialGradient id="blue" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#89b4fa" stop-opacity="0.72"/>
+      <stop offset="1" stop-color="#89b4fa" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="purple" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#cba6f7" stop-opacity="0.68"/>
+      <stop offset="1" stop-color="#cba6f7" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="teal" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#94e2d5" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="#94e2d5" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="blur"><feGaussianBlur stdDeviation="90"/></filter>
+    <pattern id="grain" width="80" height="80" patternUnits="userSpaceOnUse">
+      <circle cx="8" cy="12" r="1" fill="#ffffff" opacity="0.055"/>
+      <circle cx="43" cy="29" r="0.8" fill="#ffffff" opacity="0.04"/>
+      <circle cx="68" cy="63" r="1.2" fill="#ffffff" opacity="0.035"/>
+    </pattern>
+  </defs>
+  <rect width="2560" height="1600" fill="url(#base)"/>
+  <ellipse cx="430" cy="290" rx="830" ry="650" fill="url(#blue)" filter="url(#blur)"/>
+  <ellipse cx="2130" cy="360" rx="790" ry="680" fill="url(#purple)" filter="url(#blur)"/>
+  <ellipse cx="1510" cy="1450" rx="980" ry="620" fill="url(#teal)" filter="url(#blur)"/>
+  <path d="M-120 1210 C420 820 790 1460 1350 1030 C1780 700 2080 1130 2710 690"
+        fill="none" stroke="#f5c2e7" stroke-opacity="0.15" stroke-width="3"/>
+  <path d="M-80 1270 C480 900 850 1510 1410 1080 C1840 750 2180 1190 2680 790"
+        fill="none" stroke="#89dceb" stroke-opacity="0.14" stroke-width="2"/>
+  <rect width="2560" height="1600" fill="url(#grain)"/>
+</svg>
