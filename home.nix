@@ -1,7 +1,15 @@
+{ caelestia-shell, lib, pkgs, ... }:
+
+let
+  enableCaelestiaShellExperiment = false;
+in
 {
   home = {
     username = "accelra";
     homeDirectory = "/home/accelra";
+    packages = lib.optionals enableCaelestiaShellExperiment [
+      caelestia-shell.packages.${pkgs.stdenv.hostPlatform.system}.caelestia-shell
+    ];
     stateVersion = "26.05";
   };
 

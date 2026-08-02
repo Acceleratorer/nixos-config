@@ -8,9 +8,14 @@
       url = "github:nix-community/home-manager/release-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    caelestia-shell = {
+      url = "github:caelestia-dots/shell/7fc6f153f1862e37a3fb48f585f934d1a90e1078";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { nixpkgs, home-manager, ... }: {
+  outputs = { nixpkgs, home-manager, caelestia-shell, ... }: {
     nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       modules = [
@@ -18,6 +23,7 @@
         home-manager.nixosModules.home-manager
         {
           home-manager = {
+            extraSpecialArgs = { inherit caelestia-shell; };
             useGlobalPkgs = true;
             users.accelra = import ./home.nix;
           };
