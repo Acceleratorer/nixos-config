@@ -1,7 +1,7 @@
 { caelestia-shell, lib, pkgs, ... }:
 
 let
-  enableCaelestiaShellExperiment = false;
+  enableCaelestiaShellExperiment = true;
 in
 {
   home = {
