@@ -97,6 +97,7 @@
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
   services.asusd.enable = true;
+  services.asusd.auraConfigs."1866".source = ./asusd/aura_1866.ron;
   systemd.services.asusd.serviceConfig.ConfigurationDirectory = "asusd";
   services.supergfxd.enable = true;
 
