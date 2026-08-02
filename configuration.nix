@@ -97,6 +97,7 @@
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
   services.asusd.enable = true;
+  systemd.services.asusd.serviceConfig.ConfigurationDirectory = "asusd";
   services.supergfxd.enable = true;
 
   # List packages installed in system profile. To search, run:
