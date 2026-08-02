@@ -1,9 +1,6 @@
 { pkgs, ... }:
 
 let
-  user = "accelra";
-  home = "/home/${user}";
-
   wallpaper = pkgs.runCommand "caelestia-aurora-wallpaper.png" {
     nativeBuildInputs = [ pkgs.librsvg ];
   } ''
@@ -84,17 +81,6 @@ in
   };
 
   environment.etc."nixos-rice/wallpaper.png".source = wallpaper;
-
-  # These paths were absent before installation. They point to this
-  # declarative configuration so future rebuilds update the complete rice.
-  systemd.tmpfiles.rules = [
-    "d ${home}/.config 0755 ${user} users -"
-    "L+ ${home}/.config/hypr - - - - ${./desktop/hypr}"
-    "L+ ${home}/.config/kitty - - - - ${./desktop/kitty}"
-    "L+ ${home}/.config/mako - - - - ${./desktop/mako}"
-    "L+ ${home}/.config/rofi - - - - ${./desktop/rofi}"
-    "L+ ${home}/.config/waybar - - - - ${./desktop/waybar}"
-  ];
 
   systemd.user.services.hyprland-polkit-agent = {
     description = "Polkit authentication agent for Hyprland";

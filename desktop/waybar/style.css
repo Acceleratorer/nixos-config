@@ -46,10 +46,14 @@ window#waybar {
 }
 
 #custom-launcher {
-  color: @lavender;
   font-size: 17px;
+  min-width: 28px;
   padding-left: 10px;
   padding-right: 8px;
+  background-image: url("./assets/nixos-logo.svg");
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 #workspaces button {
