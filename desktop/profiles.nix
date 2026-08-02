@@ -26,6 +26,7 @@ let
   caelestiaPackage =
     caelestia-shell.packages.${system}.caelestia-shell;
   caelestiaCli = config.programs.caelestia.cli.package;
+  caelestiaShellConfig = ./caelestia/shell.json;
 
   initialiseCaelestiaState = pkgs.writeShellScript "initialise-caelestia-state" ''
     set -eu
@@ -94,6 +95,19 @@ in
   };
 
   config = {
+    home.activation.initialiseCaelestiaShellConfig =
+      lib.hm.dag.entryAfter [ "linkGeneration" ] ''
+        config_home="''${XDG_CONFIG_HOME:-$HOME/.config}"
+        config_dir="$config_home/caelestia"
+        shell_config="$config_dir/shell.json"
+
+        if [[ ! -e "$shell_config" && ! -L "$shell_config" ]]; then
+          run ${pkgs.coreutils}/bin/install -d -m 0700 "$config_dir"
+          run ${pkgs.coreutils}/bin/install -m 0600 \
+            ${caelestiaShellConfig} "$shell_config"
+        fi
+      '';
+
     programs.caelestia = {
       enable = true;
       package = caelestiaPackage;
@@ -105,37 +119,6 @@ in
           "QS_APP_ID=org.caelestia.shell"
           "QS_ICON_THEME=Papirus"
         ];
-      };
-
-      settings = {
-        background = {
-          enabled = true;
-          wallpaperEnabled = true;
-        };
-
-        general.idle = {
-          lockBeforeSleep = true;
-          inhibitWhenAudio = false;
-          inhibitWhenCharging = false;
-          timeouts = [
-            {
-              timeout = 300;
-              idleAction = "lock";
-            }
-            {
-              timeout = 360;
-              idleAction = "dpms off";
-              returnAction = "dpms on";
-            }
-            {
-              timeout = 1200;
-              idleAction = [ "suspend" ];
-            }
-          ];
-        };
-
-        paths.wallpaperDir = "/etc/nixos-rice";
-        services.smartScheme = false;
       };
 
       cli = {
@@ -225,17 +208,22 @@ in
           Conflicts = classicServiceUnits;
           ConditionEnvironment = "XDG_CURRENT_DESKTOP=Hyprland";
           OnFailure = [ fallbackService ];
-          StartLimitIntervalSec = "30s";
-          StartLimitBurst = 3;
         };
 
         Service = {
           Type = lib.mkForce "dbus";
           BusName = notificationBus;
           ExecStartPre = initialiseCaelestiaState;
-          Restart = lib.mkForce "always";
-          RestartSec = lib.mkForce "3s";
+          ExecStop = "-${caelestiaPackage}/bin/caelestia-shell kill";
+          Restart = lib.mkForce "no";
           TimeoutStartSec = "10s";
+          TimeoutStopSec = lib.mkForce "15s";
+
+          # Experimental exception: Quickshell launches desktop entries with
+          # QProcess::startDetached(), without a supported systemd scope hook.
+          # They inherit this cgroup and must survive shell shutdown; validate
+          # the remaining-cgroup behaviour before enabling this profile.
+          KillMode = "process";
           UMask = "0077";
         };
       };

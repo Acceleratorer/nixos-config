@@ -1,0 +1,36 @@
+{
+  "background": {
+    "enabled": true,
+    "wallpaperEnabled": true
+  },
+  "general": {
+    "idle": {
+      "inhibitWhenAudio": false,
+      "inhibitWhenCharging": false,
+      "lockBeforeSleep": true,
+      "timeouts": [
+        {
+          "idleAction": "lock",
+          "timeout": 300
+        },
+        {
+          "idleAction": "dpms off",
+          "returnAction": "dpms on",
+          "timeout": 360
+        },
+        {
+          "idleAction": [
+            "suspend"
+          ],
+          "timeout": 1200
+        }
+      ]
+    }
+  },
+  "paths": {
+    "wallpaperDir": "/etc/nixos-rice"
+  },
+  "services": {
+    "smartScheme": false
+  }
+}

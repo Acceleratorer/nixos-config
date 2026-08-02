@@ -1,6 +1,64 @@
 { pkgs, ... }:
 
 let
+  hyprlandSessionTarget = "hyprland-session.target";
+  hyprlandSessionServices = [
+    "hyprland-polkit-agent.service"
+    "xdg-desktop-portal-hyprland.service"
+  ];
+
+  hyprlandSessionReady = pkgs.writeShellScript "hyprland-session-ready" ''
+    set -e
+
+    runtime_dir="''${XDG_RUNTIME_DIR:-}"
+
+    test -n "$runtime_dir"
+    test -n "''${DISPLAY:-}"
+    test -n "''${WAYLAND_DISPLAY:-}"
+    test -n "''${HYPRLAND_INSTANCE_SIGNATURE:-}"
+    test "''${XDG_CURRENT_DESKTOP:-}" = "Hyprland"
+    test -S "$runtime_dir/$WAYLAND_DISPLAY"
+
+    exec ${pkgs.hyprland}/bin/hyprctl -j monitors >/dev/null
+  '';
+
+  prepareHyprlandSession = pkgs.writeShellApplication {
+    name = "prepare-hyprland-session";
+    runtimeInputs = with pkgs; [
+      coreutils
+      dbus
+      systemd
+    ];
+    text = ''
+      set -eu
+
+      ready=false
+      for _ in $(seq 1 100); do
+        if ${hyprlandSessionReady}; then
+          ready=true
+          break
+        fi
+        sleep 0.1
+      done
+
+      if [ "$ready" != true ]; then
+        echo "Timed out waiting for the current Hyprland compositor" >&2
+        exit 1
+      fi
+
+      systemctl --user stop ${hyprlandSessionTarget}
+
+      dbus-update-activation-environment --systemd \
+        DISPLAY \
+        WAYLAND_DISPLAY \
+        XDG_CURRENT_DESKTOP \
+        HYPRLAND_INSTANCE_SIGNATURE
+
+      systemctl --user reset-failed ${toString hyprlandSessionServices} || true
+      systemctl --user start ${hyprlandSessionTarget}
+    '';
+  };
+
   wallpaper = pkgs.runCommand "caelestia-aurora-wallpaper.png" {
     nativeBuildInputs = [ pkgs.librsvg ];
   } ''
@@ -61,6 +119,7 @@ in
     pavucontrol
     playerctl
     polkit_gnome
+    prepareHyprlandSession
     rofi
     slurp
     swappy
@@ -82,12 +141,28 @@ in
 
   environment.etc."nixos-rice/wallpaper.png".source = wallpaper;
 
-  systemd.user.services.hyprland-polkit-agent = {
-    description = "Polkit authentication agent for Hyprland";
-    serviceConfig = {
-      ExecStart = "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1";
-      Restart = "on-failure";
-      RestartSec = 1;
+  systemd.user.services = {
+    hyprland-polkit-agent = {
+      description = "Polkit authentication agent for Hyprland";
+      wantedBy = [ hyprlandSessionTarget ];
+      partOf = [ hyprlandSessionTarget ];
+      after = [ hyprlandSessionTarget ];
+      unitConfig.ConditionEnvironment = "XDG_CURRENT_DESKTOP=Hyprland";
+      serviceConfig = {
+        ExecCondition = hyprlandSessionReady;
+        ExecStart = "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1";
+        Restart = "on-failure";
+        RestartSec = 1;
+      };
+    };
+
+    xdg-desktop-portal-hyprland = {
+      overrideStrategy = "asDropin";
+      wantedBy = [ hyprlandSessionTarget ];
+      partOf = [ hyprlandSessionTarget ];
+      after = [ hyprlandSessionTarget ];
+      unitConfig.ConditionEnvironment = "XDG_CURRENT_DESKTOP=Hyprland";
+      serviceConfig.ExecCondition = hyprlandSessionReady;
     };
   };
 }
