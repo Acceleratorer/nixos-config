@@ -29,7 +29,7 @@
   "custom/launcher": {
     "format": " ",
     "tooltip": false,
-    "on-click": "rofi -show drun"
+    "on-click": "systemd-run --user --scope --collect --quiet rofi -show drun"
   },
 
   "hyprland/workspaces": {
