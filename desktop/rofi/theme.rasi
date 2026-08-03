@@ -1,66 +1,119 @@
 * {
-    bg: rgba(17, 21, 45, 94%);
-    bg-alt: rgba(30, 30, 46, 96%);
-    fg: #cdd6f4;
-    muted: #a6adc8;
-    accent: #cba6f7;
-    blue: #89b4fa;
+    background: #05070d;
+    surface: #0a1020;
+    raised: #111a2e;
+    deep-blue: #4d6fb7;
+    ice-blue: #77b6e1;
+    neon-cyan: #00e5ff;
+    text: #dcebff;
+    muted: #6b7d95;
+    success: #4dd4ac;
+    warning: #f2c66d;
+    critical: #ff637f;
 
     background-color: transparent;
-    text-color: @fg;
+    text-color: @text;
 }
 
 window {
-    width: 680px;
-    border: 2px;
-    border-color: @accent;
-    border-radius: 20px;
-    background-color: @bg;
-    padding: 20px;
+    location: center;
+    anchor: center;
+    width: 44%;
+    padding: 18px;
+    border: 1px;
+    border-color: rgba(77, 111, 183, 58%);
+    border-radius: 16px;
+    background-color: rgba(5, 7, 13, 96%);
 }
 
 mainbox {
-    spacing: 16px;
-}
-
-inputbar {
-    background-color: @bg-alt;
-    border-radius: 13px;
-    padding: 13px 16px;
+    children: [ inputbar, message, listview ];
     spacing: 12px;
 }
 
+inputbar {
+    children: [ prompt, entry, case-indicator ];
+    spacing: 10px;
+    padding: 12px 14px;
+    border: 1px;
+    border-color: rgba(77, 111, 183, 42%);
+    border-radius: 8px;
+    background-color: @raised;
+}
+
 prompt {
-    text-color: @accent;
+    text-color: @neon-cyan;
 }
 
 entry {
-    placeholder: "Search applications…";
+    placeholder: "Search…";
     placeholder-color: @muted;
+    cursor-color: @neon-cyan;
+    cursor-width: 2px;
+}
+
+case-indicator {
+    text-color: @warning;
+}
+
+message {
+    padding: 10px 12px;
+    border: 1px;
+    border-color: rgba(77, 111, 183, 42%);
+    border-radius: 8px;
+    background-color: @surface;
+}
+
+textbox {
+    text-color: @text;
 }
 
 listview {
-    lines: 8;
+    lines: 9;
     columns: 1;
-    spacing: 7px;
+    spacing: 4px;
     scrollbar: false;
 }
 
 element {
-    border-radius: 12px;
-    padding: 10px 12px;
-    spacing: 14px;
+    padding: 9px 11px;
+    border: 0px 0px 0px 3px;
+    border-color: transparent;
+    border-radius: 8px;
+    background-color: transparent;
+    text-color: @text;
+    cursor: pointer;
+    spacing: 12px;
 }
 
 element selected {
-    background-color: @bg-alt;
-    text-color: @blue;
+    border-color: @neon-cyan;
+    background-color: @raised;
+    text-color: @text;
+}
+
+element normal.active,
+element alternate.active,
+element selected.active {
+    text-color: @success;
+}
+
+element normal.urgent,
+element alternate.urgent,
+element selected.urgent {
+    text-color: @critical;
 }
 
 element-icon {
-    size: 28px;
+    size: 24px;
+    background-color: transparent;
+    cursor: inherit;
 }
 
 element-text {
+    background-color: transparent;
+    text-color: inherit;
+    cursor: inherit;
+    highlight: bold #77b6e1;
     vertical-align: 0.5;
 }
