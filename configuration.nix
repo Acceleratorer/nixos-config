@@ -110,6 +110,7 @@
 	vscode
 	asusctl 
   	git 
+	gh
   	nodejs
 	(pkgs.callPackage ./packages/codex.nix { })
 	discord
