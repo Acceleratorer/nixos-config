@@ -1,0 +1,60 @@
+* {
+    background: #05070d;
+    surface: #0a1020;
+    raised: #111a2e;
+    deep-blue: #4d6fb7;
+    neon-cyan: #00e5ff;
+    text: #dcebff;
+
+    background-color: transparent;
+    text-color: @text;
+}
+
+window {
+    location: center;
+    anchor: center;
+    width: 360px;
+    padding: 12px;
+    border: 1px;
+    border-color: @deep-blue;
+    border-radius: 16px;
+    background-color: @background;
+}
+
+mainbox {
+    children: [ listview ];
+    spacing: 12px;
+    padding: 12px;
+    border-radius: 12px;
+    background-color: @surface;
+}
+
+listview {
+    lines: 3;
+    columns: 1;
+    spacing: 12px;
+    scrollbar: false;
+    background-color: transparent;
+}
+
+element {
+    padding: 12px 14px;
+    border: 1px;
+    border-color: transparent;
+    border-radius: 8px;
+    background-color: @raised;
+    text-color: @text;
+    cursor: pointer;
+}
+
+element selected {
+    border-color: @neon-cyan;
+    background-color: @surface;
+    text-color: @text;
+}
+
+element-text {
+    background-color: transparent;
+    text-color: inherit;
+    vertical-align: 0.5;
+}
