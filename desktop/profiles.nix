@@ -21,6 +21,7 @@ let
     "mako.service"
     "hyprpaper.service"
     "hypridle.service"
+    "swayosd.service"
   ];
 
   caelestiaPackage =
@@ -150,6 +151,74 @@ in
       NoDisplay=true
     '';
 
+    xdg.configFile = {
+      "swayosd/config.toml".text = ''
+        [server]
+        top_margin = 0.5
+        max_volume = 100
+        min_brightness = 5
+        show_percentage = true
+        keyboard_backlight = false
+
+        [client]
+      '';
+
+      "swayosd/style.css".text = ''
+        window#osd {
+          border: 1px solid #4d6fb7;
+          border-radius: 16px;
+          background: #05070d;
+        }
+
+        window#osd #container {
+          margin: 4px;
+          padding: 12px 16px;
+          border-radius: 12px;
+          background: #0a1020;
+        }
+
+        window#osd image {
+          color: #77b6e1;
+        }
+
+        window#osd label {
+          color: #dcebff;
+        }
+
+        window#osd progressbar,
+        window#osd segmentedprogress {
+          min-height: 8px;
+          border-radius: 999px;
+          background: transparent;
+          border: none;
+        }
+
+        window#osd trough,
+        window#osd segment {
+          min-height: inherit;
+          border-radius: inherit;
+          border: none;
+          background: #111a2e;
+        }
+
+        window#osd progress,
+        window#osd segment.active {
+          min-height: inherit;
+          border-radius: inherit;
+          border: none;
+          background: #00e5ff;
+        }
+
+        window#osd segment {
+          margin-left: 8px;
+        }
+
+        window#osd segment:first-child {
+          margin-left: 0;
+        }
+      '';
+    };
+
     systemd.user.targets = {
       hyprland-session.Unit = {
         Description = "Hyprland compositor session";
@@ -201,6 +270,10 @@ in
       hypridle = mkClassicService
         "hypridle for the NixOS CryoForge classic profile"
         "${pkgs.hypridle}/bin/hypridle";
+
+      swayosd = mkClassicService
+        "SwayOSD for the NixOS CryoForge classic profile"
+        "${pkgs.swayosd}/bin/swayosd-server --config ${config.xdg.configHome}/swayosd/config.toml --style ${config.xdg.configHome}/swayosd/style.css";
 
       caelestia = {
         Unit = {
