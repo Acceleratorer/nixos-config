@@ -21,3 +21,6 @@ border-color=#6b7d95
 [urgency=critical]
 border-color=#00e5ff
 default-timeout=0
+
+[mode=do-not-disturb]
+invisible=1

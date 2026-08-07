@@ -72,9 +72,31 @@ case "${bluetooth_powered[0]}" in
         ;;
 esac
 
+if ! mako_modes=$(makoctl mode 2>&1); then
+    fail "Could not query Do Not Disturb: ${mako_modes}"
+fi
+
+if [[ -z $mako_modes ]]; then
+    fail "Could not parse Do Not Disturb state."
+fi
+
+dnd_enabled=0
+while IFS= read -r mako_mode; do
+    if [[ $mako_mode == do-not-disturb ]]; then
+        dnd_enabled=1
+    fi
+done <<< "$mako_modes"
+
+if (( dnd_enabled )); then
+    dnd_row="<span foreground='#00e5ff'>󰂛  Do Not Disturb: On</span>"
+else
+    dnd_row="<span foreground='#dcebff'>󰂚  Do Not Disturb: Off</span>"
+fi
+
 selection_status=0
 selection=$(
-    printf '%s\n%s\n%s\n' "$audio_row" "$wifi_row" "$bluetooth_row" |
+    printf '%s\n%s\n%s\n%s\n' \
+        "$audio_row" "$wifi_row" "$bluetooth_row" "$dnd_row" |
         rofi -dmenu \
             -markup-rows \
             -format i \
@@ -126,6 +148,11 @@ case "$selection" in
                 fi
                 ;;
         esac
+        ;;
+    3)
+        if ! action_output=$(makoctl mode -t do-not-disturb 2>&1); then
+            fail "Could not toggle Do Not Disturb: ${action_output}"
+        fi
         ;;
     *)
         fail "Unexpected panel selection."
