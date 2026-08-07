@@ -15,9 +15,15 @@
     };
   };
 
-  outputs = { nixpkgs, home-manager, caelestia-shell, ... }: {
-    nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
+  outputs = { nixpkgs, home-manager, caelestia-shell, ... }:
+    let
       system = "x86_64-linux";
+      pkgs = nixpkgs.legacyPackages.${system};
+    in {
+    packages.${system}.hyprexpo = pkgs.callPackage ./packages/hyprexpo.nix { };
+
+    nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
+      inherit system;
       modules = [
         ./configuration.nix
         home-manager.nixosModules.home-manager
