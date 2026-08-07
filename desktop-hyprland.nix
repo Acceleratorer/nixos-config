@@ -1,6 +1,10 @@
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 
 let
+  hyprexpo = pkgs.callPackage ./packages/hyprexpo.nix {
+    hyprland = config.programs.hyprland.package;
+  };
+
   hyprlandSessionTarget = "hyprland-session.target";
   hyprlandSessionServices = [
     "hyprland-polkit-agent.service"
@@ -140,6 +144,10 @@ in
   };
 
   environment.etc."nixos-rice/wallpaper.png".source = wallpaper;
+
+  environment.etc."hypr/hyprexpo.conf".text = ''
+    plugin = ${hyprexpo}/lib/libhyprexpo.so
+  '';
 
   systemd.user.services = {
     hyprland-polkit-agent = {
