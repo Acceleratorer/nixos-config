@@ -102,6 +102,25 @@
   systemd.services.asusd.serviceConfig.ConfigurationDirectory = "asusd";
   services.supergfxd.enable = true;
 
+  services.xserver.videoDrivers = [ "nvidia" ];
+
+  hardware.nvidia = {
+    open = true;
+    modesetting.enable = true;
+    powerManagement.finegrained = true;
+    dynamicBoost.enable = true;
+
+    prime = {
+      amdgpuBusId = "PCI:6@0:0:0";
+      nvidiaBusId = "PCI:1@0:0:0";
+
+      offload = {
+        enable = true;
+        enableOffloadCmd = true;
+      };
+    };
+  };
+
   # List packages installed in system profile. To search, run:
   # $ nix search wget
 
