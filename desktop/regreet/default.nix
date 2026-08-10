@@ -35,7 +35,7 @@ in
       };
 
       appearance = {
-        greeting_msg = "SECURE BOOT LOGIN · 認証保護";
+        greeting_msg = "SECURE SESSION · 認証保護";
         skip_selection = true;
         default_user = "accelra";
         default_session = "Hyprland";
