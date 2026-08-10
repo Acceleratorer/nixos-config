@@ -5,6 +5,14 @@ let
     hyprland = config.programs.hyprland.package;
   };
 
+  # Rofi 2.0.0 repeatedly crashes in its native Wayland teardown path.
+  # Hyprland already provides XWayland, so keep Rofi on its stable XCB backend.
+  rofiX11 = pkgs.rofi.override {
+    rofi-unwrapped = pkgs.rofi-unwrapped.override {
+      waylandSupport = false;
+    };
+  };
+
   hyprlandSessionTarget = "hyprland-session.target";
   hyprlandSessionServices = [
     "hyprland-polkit-agent.service"
@@ -124,7 +132,7 @@ in
     playerctl
     polkit_gnome
     prepareHyprlandSession
-    rofi
+    rofiX11
     slurp
     swappy
     swaybg
