@@ -1,0 +1,26 @@
+diff --git a/src/gui/messages.rs b/src/gui/messages.rs
+index 3ca51f0..cf7d4ff 100644
+--- a/src/gui/messages.rs
++++ b/src/gui/messages.rs
+@@ -70,6 +70,8 @@ pub enum CommandMsg {
+     ClearErr,
+     /// Handle a response received from greetd
+     HandleGreetdResponse(Response),
++    /// Recreate the configured PAM session after an authentication failure.
++    RestartSession,
+     /// Notify the greeter that a monitor was removed.
+     // The Gstring is the name of the display.
+     MonitorRemoved(GString),
+diff --git a/src/gui/model.rs b/src/gui/model.rs
+index 30265f1..0446ce2 100644
+--- a/src/gui/model.rs
++++ b/src/gui/model.rs
+@@ -237,7 +237,7 @@ impl Greeter {
+     }
+ 
+     /// Create a greetd session, i.e. start a login attempt for the current user.
+-    async fn create_session(&mut self, sender: &AsyncComponentSender<Self>) {
++    pub(super) async fn create_session(&mut self, sender: &AsyncComponentSender<Self>) {
+         let username = if let Some(username) = self.get_current_username() {
+             username
+         } else {

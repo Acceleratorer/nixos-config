@@ -1,0 +1,157 @@
+window {
+  color: #55434d;
+  background: #05070d;
+  font-family: "Zen Maru Gothic";
+}
+
+frame.cryoforge-clock-frame,
+frame.cryoforge-selection-frame {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.cryoforge-clock {
+  color: #55434d;
+  font-family: "Bebas Neue";
+  font-size: 132px;
+  font-weight: 400;
+  text-shadow: 0 2px 5px rgba(255, 255, 255, 0.48);
+}
+
+.cryoforge-date {
+  color: #846e78;
+  font-size: 17px;
+  font-weight: 500;
+  text-shadow: 0 2px 5px rgba(255, 255, 255, 0.48);
+}
+
+.cryoforge-top-value {
+  color: #55434d;
+  font-size: 18px;
+  font-weight: 500;
+  text-shadow: 0 2px 5px rgba(255, 255, 255, 0.48);
+}
+
+.cryoforge-top-network {
+  font-size: 17px;
+}
+
+.cryoforge-right-value {
+  color: #846e78;
+  font-size: 13px;
+  font-weight: 500;
+  text-shadow: 0 2px 5px rgba(255, 255, 255, 0.48);
+}
+
+.cryoforge-anime-accent,
+.cryoforge-anime-whisper {
+  font-family: "Tsukimi Rounded";
+  font-weight: 500;
+}
+
+.cryoforge-anime-accent {
+  color: rgba(196, 127, 141, 0.82);
+  font-size: 13px;
+}
+
+.cryoforge-anime-whisper {
+  color: rgba(132, 110, 120, 0.68);
+  font-size: 11px;
+}
+
+.cryoforge-password-prompt {
+  color: #826c76;
+  font-family: "Tsukimi Rounded";
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.cryoforge-password-prompt.error {
+  color: #c47f8d;
+}
+
+passwordentry.cryoforge-secret,
+passwordentry.cryoforge-secret > text {
+  min-width: 306px;
+  min-height: 44px;
+  padding: 0;
+  color: transparent;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+  box-shadow: none;
+}
+
+entry.cryoforge-visible {
+  min-width: 306px;
+  min-height: 44px;
+  padding: 0 10px;
+  color: #55434d;
+  background: rgba(255, 253, 251, 0.92);
+  border: 1px solid rgba(196, 127, 141, 0.62);
+  border-radius: 15px;
+  box-shadow: none;
+}
+
+frame.cryoforge-selection-frame grid {
+  min-width: 500px;
+  padding: 22px;
+  color: #55434d;
+  background: rgba(255, 253, 251, 0.94);
+  border: 2px solid rgba(196, 127, 141, 0.68);
+  border-radius: 24px;
+  box-shadow: 0 10px 28px rgba(93, 65, 75, 0.18);
+}
+
+frame.cryoforge-selection-frame label {
+  color: #6f5963;
+  font-weight: 500;
+}
+
+frame.cryoforge-selection-frame entry,
+frame.cryoforge-selection-frame combobox > box,
+frame.cryoforge-selection-frame combobox button {
+  min-height: 44px;
+  color: #55434d;
+  background: rgba(255, 253, 251, 0.96);
+  border: 1px solid rgba(196, 127, 141, 0.66);
+  border-radius: 15px;
+  box-shadow: none;
+}
+
+button {
+  min-height: 42px;
+  padding: 0 18px;
+  color: #6f5963;
+  background: rgba(255, 253, 251, 0.94);
+  border: 1px solid rgba(196, 127, 141, 0.46);
+  border-radius: 14px;
+  box-shadow: none;
+}
+
+button:hover,
+button:focus {
+  background: rgba(255, 244, 244, 0.98);
+  border-color: #c47f8d;
+}
+
+button.suggested-action {
+  color: #fffdfb;
+  background: #a96878;
+  border-color: #a96878;
+}
+
+button.destructive-action {
+  color: #7a4d5b;
+  background: rgba(255, 253, 251, 0.90);
+  border-color: rgba(196, 127, 141, 0.58);
+}
+
+infobar {
+  color: #7a293d;
+  background: rgba(255, 236, 239, 0.96);
+  border: 1px solid rgba(196, 127, 141, 0.72);
+  border-radius: 14px;
+}

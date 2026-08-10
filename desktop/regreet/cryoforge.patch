@@ -1,0 +1,71 @@
+diff --git a/src/config.rs b/src/config.rs
+index 2354e0a..fc78be4 100644
+--- a/src/config.rs
++++ b/src/config.rs
+@@ -18,12 +18,21 @@ use crate::tomlutils::load_toml;
+ pub struct AppearanceSettings {
+     #[serde(default = "default_greeting_msg")]
+     pub greeting_msg: String,
++    #[serde(default)]
++    pub skip_selection: bool,
++    #[serde(default)]
++    pub default_user: Option<String>,
++    #[serde(default)]
++    pub default_session: Option<String>,
+ }
+ 
+ impl Default for AppearanceSettings {
+     fn default() -> Self {
+         AppearanceSettings {
+             greeting_msg: default_greeting_msg(),
++            skip_selection: false,
++            default_user: None,
++            default_session: None,
+         }
+     }
+ }
+@@ -151,4 +160,16 @@ impl Config {
+     pub fn get_default_message(&self) -> String {
+         self.appearance.greeting_msg.clone()
+     }
++
++    pub fn get_skip_selection(&self) -> bool {
++        self.appearance.skip_selection
++    }
++
++    pub fn get_default_user(&self) -> Option<&str> {
++        self.appearance.default_user.as_deref()
++    }
++
++    pub fn get_default_session(&self) -> Option<&str> {
++        self.appearance.default_session.as_deref()
++    }
+ }
+diff --git a/src/gui/model.rs b/src/gui/model.rs
+index 30265f1..184c585 100644
+--- a/src/gui/model.rs
++++ b/src/gui/model.rs
+@@ -360,7 +360,10 @@ impl Greeter {
+ 
+                 // In case this is an authentication error (e.g. wrong password), the session should be cancelled.
+                 if let ErrorType::AuthError = error_type {
+-                    self.cancel_click_handler().await
++                    self.cancel_click_handler().await;
++                    if self.config.get_skip_selection() {
++                        sender.oneshot_command(async { CommandMsg::RestartSession });
++                    }
+                 }
+                 return;
+             }
+@@ -392,7 +395,10 @@ impl Greeter {
+             return;
+         };
+ 
+-        if let Some(last_session) = self.cache.get_last_session(&username) {
++        if let Some(default_session) = self.config.get_default_session() {
++            self.updates
++                .set_active_session_id(Some(default_session.to_string()));
++        } else if let Some(last_session) = self.cache.get_last_session(&username) {
+             // Set the last session used by this user in the session combo box.
+             self.updates
+                 .set_active_session_id(Some(last_session.to_string()));
