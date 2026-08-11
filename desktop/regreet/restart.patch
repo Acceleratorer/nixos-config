@@ -17,7 +17,7 @@ index 30265f1..0446ce2 100644
 +++ b/src/gui/model.rs
 @@ -237,7 +237,7 @@ impl Greeter {
      }
- 
+
      /// Create a greetd session, i.e. start a login attempt for the current user.
 -    async fn create_session(&mut self, sender: &AsyncComponentSender<Self>) {
 +    pub(super) async fn create_session(&mut self, sender: &AsyncComponentSender<Self>) {

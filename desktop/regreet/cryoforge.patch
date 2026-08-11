@@ -13,7 +13,7 @@ index 2354e0a..fc78be4 100644
 +    #[serde(default)]
 +    pub default_session: Option<String>,
  }
- 
+
  impl Default for AppearanceSettings {
      fn default() -> Self {
          AppearanceSettings {
@@ -46,7 +46,7 @@ index 30265f1..184c585 100644
 --- a/src/gui/model.rs
 +++ b/src/gui/model.rs
 @@ -360,7 +360,10 @@ impl Greeter {
- 
+
                  // In case this is an authentication error (e.g. wrong password), the session should be cancelled.
                  if let ErrorType::AuthError = error_type {
 -                    self.cancel_click_handler().await
@@ -60,7 +60,7 @@ index 30265f1..184c585 100644
 @@ -392,7 +395,10 @@ impl Greeter {
              return;
          };
- 
+
 -        if let Some(last_session) = self.cache.get_last_session(&username) {
 +        if let Some(default_session) = self.config.get_default_session() {
 +            self.updates
