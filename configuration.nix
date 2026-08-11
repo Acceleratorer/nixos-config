@@ -121,7 +121,7 @@
     open = true;
     modesetting.enable = true;
     powerManagement.finegrained = true;
-    dynamicBoost.enable = true;
+    dynamicBoost.enable = false;
 
     prime = {
       amdgpuBusId = "PCI:6@0:0:0";
