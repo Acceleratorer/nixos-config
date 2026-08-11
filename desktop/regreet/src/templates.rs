@@ -35,6 +35,9 @@ impl WidgetTemplate for EntryLabel {
 impl WidgetTemplate for Ui {
     view! {
         gtk::Overlay {
+            set_width_request: 1920,
+            set_height_request: 1080,
+
             /// Precomposed Hyprlock wallpaper, static overlay, and avatar.
             #[name = "background"]
             gtk::Picture,
@@ -141,7 +144,6 @@ impl WidgetTemplate for Ui {
                 set_margin_top: 713,
                 set_width_request: 306,
                 set_height_request: 44,
-                set_opacity: 0.0,
                 set_show_peek_icon: false,
                 add_css_class: "cryoforge-secret",
             },

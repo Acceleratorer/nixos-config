@@ -78,8 +78,8 @@ passwordentry.cryoforge-secret > text {
   padding: 0;
   color: transparent;
   background: transparent;
-  border: 0;
-  border-radius: 0;
+  border: 2px solid transparent;
+  border-radius: 18px;
   outline: 0;
   box-shadow: none;
 }
@@ -122,7 +122,7 @@ frame.cryoforge-selection-frame combobox button {
 }
 
 button {
-  min-height: 42px;
+  min-height: 44px;
   padding: 0 18px;
   color: #6f5963;
   background: rgba(255, 253, 251, 0.94);
@@ -131,16 +131,15 @@ button {
   box-shadow: none;
 }
 
-button:hover,
-button:focus {
+button:hover {
   background: rgba(255, 244, 244, 0.98);
   border-color: #c47f8d;
 }
 
 button.suggested-action {
   color: #fffdfb;
-  background: #a96878;
-  border-color: #a96878;
+  background: #8e4f5f;
+  border-color: #8e4f5f;
 }
 
 button.destructive-action {
@@ -162,6 +161,17 @@ button.cryoforge-recovery-button:focus {
   color: #fffdfb;
   background: rgba(17, 26, 46, 0.96);
   border-color: #fffdfb;
+}
+
+passwordentry.cryoforge-secret:focus,
+passwordentry.cryoforge-secret:focus-within,
+entry.cryoforge-visible:focus,
+frame.cryoforge-selection-frame entry:focus,
+frame.cryoforge-selection-frame combobox:focus-within > box,
+frame.cryoforge-selection-frame combobox button:focus,
+button:focus {
+  border-color: #55434d;
+  box-shadow: 0 0 0 3px #fffdfb;
 }
 
 infobar {

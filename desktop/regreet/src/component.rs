@@ -115,6 +115,31 @@ fn set_letter_spacing(label: &gtk::Label, spacing: i32) {
     label.set_attributes(Some(&attrs));
 }
 
+const DESIGN_WIDTH: f32 = 1920.0;
+const DESIGN_HEIGHT: f32 = 1080.0;
+
+fn fit_design_canvas(
+    viewport: &gtk::Fixed,
+    canvas: &gtk::Overlay,
+    monitor: &gdk::Monitor,
+) {
+    let geometry = monitor.geometry();
+    let viewport_width = geometry.width() as f32;
+    let viewport_height = geometry.height() as f32;
+
+    if viewport_width <= 0.0 || viewport_height <= 0.0 {
+        return;
+    }
+
+    let scale = (viewport_width / DESIGN_WIDTH).min(viewport_height / DESIGN_HEIGHT);
+    let offset_x = (viewport_width - DESIGN_WIDTH * scale) / 2.0;
+    let offset_y = (viewport_height - DESIGN_HEIGHT * scale) / 2.0;
+    let transform = gtk::gsk::Transform::new().scale(scale, scale);
+
+    viewport.move_(canvas, offset_x.into(), offset_y.into());
+    viewport.set_child_transform(canvas, Some(&transform));
+}
+
 fn date_text() -> String {
     let now = Zoned::new(Timestamp::now(), TimeZone::system());
     let weekday = match now.weekday() {
@@ -499,6 +524,13 @@ impl AsyncComponent for Greeter {
         if model.updates.changed(Updates::monitor()) {
             if let Some(monitor) = &model.updates.monitor {
                 widgets.window.fullscreen_on_monitor(monitor);
+                if let Some(viewport) = widgets
+                    .window
+                    .child()
+                    .and_then(|child| child.downcast::<gtk::Fixed>().ok())
+                {
+                    fit_design_canvas(&viewport, widgets.ui.as_ref(), monitor);
+                }
                 setup_settings(self, &widgets.window);
             }
         }
@@ -511,6 +543,14 @@ impl AsyncComponent for Greeter {
     ) -> AsyncComponentParts<Self> {
         let mut model = Self::new(&input.config_path, input.demo).await;
         let widgets = view_output!();
+
+        let viewport = gtk::Fixed::new();
+        viewport.set_hexpand(true);
+        viewport.set_vexpand(true);
+        viewport.set_overflow(gtk::Overflow::Hidden);
+        root.set_child(None::<&gtk::Widget>);
+        viewport.put(widgets.ui.as_ref(), 0.0, 0.0);
+        root.set_child(Some(&viewport));
 
         widgets.ui.error_info.set_visible(true);
 
@@ -532,6 +572,7 @@ impl AsyncComponent for Greeter {
         model.choose_monitor(widgets.ui.display().name().as_str(), &sender);
         if let Some(monitor) = &model.updates.monitor {
             root.fullscreen_on_monitor(monitor);
+            fit_design_canvas(&viewport, widgets.ui.as_ref(), monitor);
         } else {
             root.fullscreen();
         }
