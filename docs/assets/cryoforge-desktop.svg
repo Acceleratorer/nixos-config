@@ -1,0 +1,194 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="810" viewBox="0 0 1440 810" role="img" aria-labelledby="title description">
+  <title id="title">CryoForge classic desktop visual preview</title>
+  <desc id="description">A dark navy Hyprland desktop with a floating Waybar, cyan window borders, a terminal, the CryoDeck launcher, and quick settings.</desc>
+
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#05070d"/>
+      <stop offset="0.56" stop-color="#0a1020"/>
+      <stop offset="1" stop-color="#171329"/>
+    </linearGradient>
+    <radialGradient id="cyanGlow" cx="0.18" cy="0.12" r="0.75">
+      <stop offset="0" stop-color="#77b6e1" stop-opacity="0.52"/>
+      <stop offset="1" stop-color="#77b6e1" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="violetGlow" cx="0.88" cy="0.14" r="0.7">
+      <stop offset="0" stop-color="#8d78d1" stop-opacity="0.40"/>
+      <stop offset="1" stop-color="#8d78d1" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="cyanLine" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#00e5ff"/>
+      <stop offset="1" stop-color="#77b6e1"/>
+    </linearGradient>
+    <filter id="softGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="16"/>
+    </filter>
+    <filter id="panelShadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#000000" flood-opacity="0.40"/>
+    </filter>
+    <pattern id="grain" width="64" height="64" patternUnits="userSpaceOnUse">
+      <circle cx="8" cy="13" r="1" fill="#ffffff" opacity="0.025"/>
+      <circle cx="41" cy="29" r="0.8" fill="#ffffff" opacity="0.018"/>
+      <circle cx="57" cy="52" r="1.1" fill="#ffffff" opacity="0.018"/>
+    </pattern>
+  </defs>
+
+  <rect width="1440" height="810" fill="url(#background)"/>
+  <rect width="1440" height="810" fill="url(#cyanGlow)"/>
+  <rect width="1440" height="810" fill="url(#violetGlow)"/>
+  <path d="M-120 690 C240 500 480 790 795 598 C1060 438 1200 610 1540 418" fill="none" stroke="#77b6e1" stroke-opacity="0.16" stroke-width="2"/>
+  <path d="M-100 735 C270 540 510 820 825 632 C1090 474 1250 646 1540 485" fill="none" stroke="#b29cff" stroke-opacity="0.14" stroke-width="2"/>
+  <rect width="1440" height="810" fill="url(#grain)"/>
+
+  <!-- Floating Waybar -->
+  <g filter="url(#panelShadow)">
+    <rect x="42" y="30" width="555" height="50" rx="18" fill="#0a1020" fill-opacity="0.93" stroke="#4d6fb7" stroke-opacity="0.42"/>
+    <rect x="622" y="30" width="196" height="50" rx="18" fill="#0a1020" fill-opacity="0.93" stroke="#4d6fb7" stroke-opacity="0.42"/>
+    <rect x="843" y="30" width="555" height="50" rx="18" fill="#0a1020" fill-opacity="0.93" stroke="#4d6fb7" stroke-opacity="0.42"/>
+  </g>
+
+  <g transform="translate(66 42)">
+    <g transform="translate(0 1)">
+      <path d="M14 0 L26 7 L26 21 L14 28 L2 21 L2 7 Z" fill="none" stroke="#77b6e1" stroke-width="2"/>
+      <path d="M14 5 L14 23 M6 10 L22 18 M22 10 L6 18" stroke="#00e5ff" stroke-width="2" stroke-linecap="round"/>
+    </g>
+    <text x="42" y="20" fill="#dcebff" font-family="'JetBrains Mono', monospace" font-size="14" font-weight="700">CRYOFORGE</text>
+    <g transform="translate(178 13)">
+      <circle cx="0" cy="0" r="5" fill="#00e5ff"/>
+      <circle cx="24" cy="0" r="4" fill="#64748b"/>
+      <circle cx="48" cy="0" r="4" fill="#64748b"/>
+      <circle cx="72" cy="0" r="4" fill="#64748b"/>
+      <circle cx="96" cy="0" r="4" fill="#64748b"/>
+    </g>
+    <text x="306" y="20" fill="#8193ab" font-family="'JetBrains Mono', monospace" font-size="13">nixos-config — README.md</text>
+  </g>
+
+  <g transform="translate(672 44)">
+    <circle cx="5" cy="10" r="8" fill="none" stroke="#00e5ff" stroke-width="2"/>
+    <path d="M5 5 L5 10 L9 12" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round"/>
+    <text x="25" y="16" fill="#00e5ff" font-family="'JetBrains Mono', monospace" font-size="17" font-weight="700">23:48</text>
+  </g>
+
+  <g transform="translate(870 47)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M0 14 Q11 2 22 14 M5 14 Q11 8 17 14 M11 14 L11 14" stroke="#00e5ff" stroke-width="2.2"/>
+    <path d="M48 2 L48 24 M42 8 L54 18 M54 8 L42 18" stroke="#4d6fb7" stroke-width="2"/>
+    <path d="M76 7 Q84 0 92 7 L92 19 Q84 26 76 19 Z" stroke="#77b6e1" stroke-width="2"/>
+    <path d="M80 12 L88 12" stroke="#77b6e1" stroke-width="2"/>
+    <text x="111" y="18" fill="#dcebff" stroke="none" font-family="'JetBrains Mono', monospace" font-size="13">CPU 12%</text>
+    <text x="206" y="18" fill="#dcebff" stroke="none" font-family="'JetBrains Mono', monospace" font-size="13">RAM 38%</text>
+    <path d="M304 7 H331 V21 H304 Z M331 11 H335 V17 H331" stroke="#00e5ff" stroke-width="2"/>
+    <rect x="308" y="11" width="17" height="6" rx="2" fill="#00e5ff" stroke="none"/>
+    <text x="346" y="18" fill="#00e5ff" stroke="none" font-family="'JetBrains Mono', monospace" font-size="13">82%</text>
+    <path d="M438 5 V20 M431 9 A10 10 0 1 0 445 9" stroke="#ff637f" stroke-width="2.4"/>
+  </g>
+
+  <!-- Terminal window -->
+  <g filter="url(#panelShadow)">
+    <rect x="58" y="112" width="790" height="624" rx="24" fill="#05070d" fill-opacity="0.94" stroke="url(#cyanLine)" stroke-width="2"/>
+    <rect x="58" y="112" width="790" height="58" rx="24" fill="#111a2e"/>
+    <rect x="58" y="146" width="790" height="24" fill="#111a2e"/>
+  </g>
+  <g transform="translate(84 132)">
+    <circle cx="8" cy="8" r="6" fill="#ff637f"/>
+    <circle cx="32" cy="8" r="6" fill="#f2c66d"/>
+    <circle cx="56" cy="8" r="6" fill="#4dd4ac"/>
+    <text x="92" y="14" fill="#dcebff" font-family="'JetBrains Mono', monospace" font-size="14">kitty — nixos-config</text>
+    <rect x="602" y="0" width="80" height="26" rx="8" fill="#0a1020"/>
+    <text x="618" y="18" fill="#00e5ff" font-family="'JetBrains Mono', monospace" font-size="12">main</text>
+  </g>
+
+  <g transform="translate(92 218)" font-family="'JetBrains Mono', monospace">
+    <text x="0" y="0" fill="#00e5ff" font-size="17">accelra@nixos</text>
+    <text x="142" y="0" fill="#8193ab" font-size="17">~/Github/nixos-config</text>
+    <text x="0" y="46" fill="#77b6e1" font-size="15">$</text>
+    <text x="24" y="46" fill="#dcebff" font-size="15">nix flake check --no-build</text>
+    <text x="24" y="82" fill="#8193ab" font-size="14">checking NixOS configuration 'nixosConfigurations.nixos'...</text>
+    <text x="24" y="116" fill="#4dd4ac" font-size="14">all checks passed!</text>
+
+    <text x="0" y="176" fill="#dcebff" font-size="52" font-weight="700" letter-spacing="6">CRYOFORGE</text>
+    <rect x="0" y="195" width="560" height="3" rx="2" fill="url(#cyanLine)"/>
+    <text x="0" y="232" fill="#77b6e1" font-size="15" letter-spacing="2">NIXOS × HYPRLAND × HOME MANAGER</text>
+
+    <g transform="translate(0 280)">
+      <rect width="212" height="86" rx="14" fill="#0a1020" stroke="#4d6fb7" stroke-opacity="0.55"/>
+      <text x="18" y="30" fill="#8193ab" font-size="12" letter-spacing="1">PROFILE</text>
+      <text x="18" y="60" fill="#00e5ff" font-size="17" font-weight="700">CLASSIC</text>
+
+      <g transform="translate(230 0)">
+        <rect width="212" height="86" rx="14" fill="#0a1020" stroke="#4d6fb7" stroke-opacity="0.55"/>
+        <text x="18" y="30" fill="#8193ab" font-size="12" letter-spacing="1">COMPOSITOR</text>
+        <text x="18" y="60" fill="#dcebff" font-size="17" font-weight="700">HYPRLAND</text>
+      </g>
+
+      <g transform="translate(460 0)">
+        <rect width="212" height="86" rx="14" fill="#0a1020" stroke="#4d6fb7" stroke-opacity="0.55"/>
+        <text x="18" y="30" fill="#8193ab" font-size="12" letter-spacing="1">OVERVIEW</text>
+        <text x="18" y="60" fill="#77b6e1" font-size="17" font-weight="700">HYPREXPO</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- CryoDeck launcher -->
+  <g filter="url(#panelShadow)">
+    <rect x="886" y="130" width="494" height="378" rx="22" fill="#05070d" fill-opacity="0.97" stroke="#4d6fb7" stroke-opacity="0.72"/>
+  </g>
+  <g transform="translate(914 157)" font-family="'JetBrains Mono', monospace">
+    <text x="0" y="18" fill="#00e5ff" font-size="15" font-weight="700">APPS</text>
+    <rect x="0" y="38" width="438" height="54" rx="12" fill="#111a2e" stroke="#4d6fb7" stroke-opacity="0.5"/>
+    <circle cx="26" cy="65" r="9" fill="none" stroke="#00e5ff" stroke-width="2"/>
+    <path d="M33 72 L40 79" stroke="#00e5ff" stroke-width="2" stroke-linecap="round"/>
+    <text x="55" y="71" fill="#8193ab" font-size="14">Search applications...</text>
+
+    <g transform="translate(0 112)">
+      <rect width="438" height="52" rx="11" fill="#111a2e"/>
+      <rect width="4" height="52" rx="2" fill="#00e5ff"/>
+      <rect x="18" y="13" width="26" height="26" rx="7" fill="#00e5ff" fill-opacity="0.16" stroke="#00e5ff"/>
+      <text x="60" y="24" fill="#dcebff" font-size="14" font-weight="700">Kitty</text>
+      <text x="60" y="42" fill="#8193ab" font-size="11">Terminal emulator</text>
+    </g>
+
+    <g transform="translate(0 174)">
+      <rect width="438" height="52" rx="11" fill="#0a1020"/>
+      <rect x="18" y="13" width="26" height="26" rx="7" fill="#77b6e1" fill-opacity="0.13" stroke="#77b6e1"/>
+      <text x="60" y="24" fill="#dcebff" font-size="14" font-weight="700">Visual Studio Code</text>
+      <text x="60" y="42" fill="#8193ab" font-size="11">Code editor</text>
+    </g>
+
+    <g transform="translate(0 236)">
+      <rect width="438" height="52" rx="11" fill="#0a1020"/>
+      <rect x="18" y="13" width="26" height="26" rx="7" fill="#8d78d1" fill-opacity="0.13" stroke="#8d78d1"/>
+      <text x="60" y="24" fill="#dcebff" font-size="14" font-weight="700">Firefox</text>
+      <text x="60" y="42" fill="#8193ab" font-size="11">Web browser</text>
+    </g>
+
+    <text x="0" y="326" fill="#64748b" font-size="11">FUZZY MATCH · PAPIRUS DARK · XCB</text>
+  </g>
+
+  <!-- Quick settings -->
+  <g filter="url(#panelShadow)">
+    <rect x="920" y="540" width="424" height="196" rx="22" fill="#0a1020" fill-opacity="0.96" stroke="#4d6fb7" stroke-opacity="0.68"/>
+  </g>
+  <g transform="translate(946 566)" font-family="'JetBrains Mono', monospace">
+    <text x="0" y="16" fill="#dcebff" font-size="14" font-weight="700">QUICK SETTINGS</text>
+    <g transform="translate(0 38)">
+      <rect width="178" height="50" rx="13" fill="#111a2e" stroke="#00e5ff" stroke-opacity="0.54"/>
+      <path d="M18 19 H25 L35 11 V39 L25 31 H18 Z" fill="none" stroke="#00e5ff" stroke-width="2"/>
+      <text x="50" y="31" fill="#00e5ff" font-size="13">Audio 72%</text>
+    </g>
+    <g transform="translate(194 38)">
+      <rect width="178" height="50" rx="13" fill="#111a2e" stroke="#00e5ff" stroke-opacity="0.54"/>
+      <path d="M18 29 Q28 17 38 29 M23 29 Q28 23 33 29" fill="none" stroke="#00e5ff" stroke-width="2"/>
+      <text x="50" y="31" fill="#00e5ff" font-size="13">Wi-Fi on</text>
+    </g>
+    <g transform="translate(0 102)">
+      <rect width="178" height="50" rx="13" fill="#111a2e" stroke="#4d6fb7" stroke-opacity="0.64"/>
+      <path d="M26 10 V40 M19 18 L34 31 M34 18 L19 31" fill="none" stroke="#77b6e1" stroke-width="2"/>
+      <text x="50" y="31" fill="#dcebff" font-size="13">Bluetooth</text>
+    </g>
+    <g transform="translate(194 102)">
+      <rect width="178" height="50" rx="13" fill="#111a2e" stroke="#4d6fb7" stroke-opacity="0.64"/>
+      <path d="M27 13 A13 13 0 1 0 40 26 A10 10 0 0 1 27 13" fill="none" stroke="#77b6e1" stroke-width="2"/>
+      <text x="50" y="31" fill="#dcebff" font-size="13">DND off</text>
+    </g>
+  </g>
+</svg>
