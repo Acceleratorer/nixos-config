@@ -148,7 +148,8 @@
 	(pkgs.callPackage ./packages/codex.nix { })
 	discord
 	p7zip
-	rar  
+	rar
+	bubblewrap
 
   ];
 
