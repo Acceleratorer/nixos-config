@@ -14,6 +14,7 @@
 
   # Bootloader.
   boot.loader.systemd-boot.enable = true;
+  boot.loader.systemd-boot.configurationLimit = 10;
   boot.loader.efi.canTouchEfiVariables = true;
 
   networking.hostName = "nixos"; # Define your hostname.
@@ -96,6 +97,18 @@
   nixpkgs.config.allowUnfree = true;
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
+
+  nix.gc = {
+    automatic = true;
+    dates = "Sun 03:15";
+    options = "--delete-older-than 30d";
+    randomizedDelaySec = "1h";
+  };
+
+  nix.optimise = {
+    automatic = true;
+    dates = "Mon 03:45";
+  };
 
   services.asusd.enable = true;
   services.asusd.auraConfigs."1866".source = ./asusd/aura_1866.ron;
