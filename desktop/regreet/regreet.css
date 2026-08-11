@@ -149,6 +149,21 @@ button.destructive-action {
   border-color: rgba(196, 127, 141, 0.58);
 }
 
+button.cryoforge-recovery-button {
+  min-width: 190px;
+  min-height: 44px;
+  color: #fffdfb;
+  background: rgba(5, 7, 13, 0.82);
+  border-color: rgba(196, 127, 141, 0.86);
+}
+
+button.cryoforge-recovery-button:hover,
+button.cryoforge-recovery-button:focus {
+  color: #fffdfb;
+  background: rgba(17, 26, 46, 0.96);
+  border-color: #fffdfb;
+}
+
 infobar {
   color: #7a293d;
   background: rgba(255, 236, 239, 0.96);

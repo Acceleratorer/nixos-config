@@ -295,6 +295,21 @@ impl WidgetTemplate for Ui {
                 add_css_class: "cryoforge-right-value",
             },
 
+            /// Visible escape hatch to the native user/session chooser.
+            #[name = "recovery_button"]
+            add_overlay = &gtk::Button {
+                set_label: "SESSION · RECOVERY",
+                set_tooltip_text: Some("Choose GNOME or another session (Esc)"),
+                set_halign: gtk::Align::Start,
+                set_valign: gtk::Align::End,
+                set_margin_start: 24,
+                set_margin_bottom: 24,
+                set_width_request: 190,
+                set_height_request: 44,
+                set_focusable: true,
+                add_css_class: "cryoforge-recovery-button",
+            },
+
             /// Recovery-only error and power actions.
             #[name = "end_controls"]
             add_overlay = &gtk::Box {

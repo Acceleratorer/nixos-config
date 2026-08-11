@@ -335,6 +335,13 @@ impl AsyncComponent for Greeter {
                 },
 
                 #[template_child]
+                recovery_button {
+                    #[track(model.updates.changed(Updates::input_mode()))]
+                    set_visible: model.updates.is_input(),
+                    connect_clicked => Self::Input::Cancel,
+                },
+
+                #[template_child]
                 secret_entry {
                     #[track(model.updates.changed(Updates::input_mode()))]
                     set_visible: model.updates.input_mode == InputMode::Secret,
