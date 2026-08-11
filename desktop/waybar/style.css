@@ -1,10 +1,11 @@
-@define-color base rgba(17, 21, 45, 0.88);
-@define-color text #cdd6f4;
-@define-color muted #a6adc8;
-@define-color lavender #cba6f7;
-@define-color blue #89b4fa;
-@define-color teal #94e2d5;
-@define-color red #f38ba8;
+@define-color base      rgba(10, 16, 32, 0.88);
+@define-color text      #dcebff;
+@define-color muted     #8193ab;
+@define-color deep-blue #4d6fb7;
+@define-color ice-blue  #77b6e1;
+@define-color neon-cyan #00e5ff;
+@define-color warning   #f2c66d;
+@define-color critical  #ff637f;
 
 * {
   border: none;
@@ -23,7 +24,7 @@ window#waybar {
 .modules-center,
 .modules-right {
   background: @base;
-  border: 1px solid rgba(203, 166, 247, 0.24);
+  border: 1px solid rgba(77, 111, 183, 0.24);
   border-radius: 15px;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
 }
@@ -57,17 +58,17 @@ window#waybar {
 }
 
 #workspaces button {
-  color: #585b70;
+  color: @muted;
   padding: 0 5px;
   transition: all 180ms ease;
 }
 
 #workspaces button.active {
-  color: @blue;
+  color: @ice-blue;
 }
 
 #workspaces button.urgent {
-  color: @red;
+  color: @critical;
 }
 
 #window {
@@ -75,44 +76,44 @@ window#waybar {
 }
 
 #clock {
-  color: @lavender;
+  color: @neon-cyan;
   font-weight: 700;
 }
 
 #pulseaudio {
-  color: @blue;
+  color: @ice-blue;
 }
 
 #network {
-  color: @teal;
+  color: @neon-cyan;
 }
 
 #bluetooth {
-  color: @lavender;
+  color: @deep-blue;
 }
 
 #battery.charging,
 #battery.plugged {
-  color: @teal;
+  color: @neon-cyan;
 }
 
 #battery.warning:not(.charging) {
-  color: #f9e2af;
+  color: @warning;
 }
 
 #battery.critical:not(.charging) {
-  color: @red;
+  color: @critical;
 }
 
 #custom-power {
-  color: @red;
+  color: @critical;
   padding-left: 12px;
   padding-right: 13px;
 }
 
 tooltip {
-  background: #11152d;
-  border: 1px solid rgba(137, 180, 250, 0.4);
+  background: #111a2e;
+  border: 1px solid rgba(77, 111, 183, 0.4);
   border-radius: 12px;
 }
 

@@ -16,7 +16,7 @@ layer=overlay
 anchor=top-right
 
 [urgency=low]
-border-color=#6b7d95
+border-color=#8193ab
 
 [urgency=critical]
 border-color=#00e5ff

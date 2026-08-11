@@ -4,7 +4,7 @@ configuration {
     display-drun: "apps";
     display-run: "run";
     display-window: "windows";
-    drun-display-format: "<span foreground='#dcebff'>{name}</span>  <span foreground='#6b7d95' size='small'>{generic}</span>";
+    drun-display-format: "<span foreground='#dcebff'>{name}</span>  <span foreground='#8193ab' size='small'>{generic}</span>";
     font: "JetBrainsMono Nerd Font 12";
     icon-theme: "Papirus-Dark";
     terminal: "kitty";

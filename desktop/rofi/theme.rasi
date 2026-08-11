@@ -6,7 +6,7 @@
     ice-blue: #77b6e1;
     neon-cyan: #00e5ff;
     text: #dcebff;
-    muted: #6b7d95;
+    muted: #8193ab;
     success: #4dd4ac;
     warning: #f2c66d;
     critical: #ff637f;
