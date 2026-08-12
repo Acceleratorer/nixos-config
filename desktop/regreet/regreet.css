@@ -71,17 +71,21 @@ frame.cryoforge-selection-frame {
   color: #c47f8d;
 }
 
-passwordentry.cryoforge-secret,
-passwordentry.cryoforge-secret > text {
+entry.password.cryoforge-secret {
   min-width: 306px;
   min-height: 44px;
   padding: 0;
-  color: transparent;
   background: transparent;
   border: 2px solid transparent;
   border-radius: 18px;
   outline: 0;
   box-shadow: none;
+}
+
+entry.password.cryoforge-secret > text {
+  color: transparent;
+  background: transparent;
+  opacity: 0;
 }
 
 entry.cryoforge-visible {
@@ -168,8 +172,13 @@ button.cryoforge-recovery-button:focus {
   border-color: #fffdfb;
 }
 
-passwordentry.cryoforge-secret:focus,
-passwordentry.cryoforge-secret:focus-within,
+entry.password.cryoforge-secret:focus,
+entry.password.cryoforge-secret:focus-within {
+  border-color: transparent;
+  outline: none;
+  box-shadow: 0 0 10px rgba(196, 127, 141, 0.16);
+}
+
 entry.cryoforge-visible:focus,
 frame.cryoforge-selection-frame entry:focus,
 frame.cryoforge-selection-frame combobox:focus-within > box,
