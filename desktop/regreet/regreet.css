@@ -150,10 +150,15 @@ button.destructive-action {
 
 button.cryoforge-recovery-button {
   min-width: 190px;
-  min-height: 44px;
+  min-height: 52px;
+  padding: 4px 18px;
   color: #fffdfb;
   background: rgba(5, 7, 13, 0.82);
   border-color: rgba(196, 127, 141, 0.86);
+}
+
+button.cryoforge-recovery-button label.cryoforge-recovery-label {
+  font-family: "Tsukimi Rounded", "Noto Sans CJK JP";
 }
 
 button.cryoforge-recovery-button:hover,

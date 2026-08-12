@@ -300,16 +300,21 @@ impl WidgetTemplate for Ui {
             /// Visible escape hatch to the native user/session chooser.
             #[name = "recovery_button"]
             add_overlay = &gtk::Button {
-                set_label: "SESSION · RECOVERY",
-                set_tooltip_text: Some("Choose GNOME or another session (Esc)"),
+                set_tooltip_text: Some("Open the user and session chooser; select GNOME for recovery (Esc)"),
                 set_halign: gtk::Align::Start,
                 set_valign: gtk::Align::End,
                 set_margin_start: 24,
                 set_margin_bottom: 24,
                 set_width_request: 190,
-                set_height_request: 44,
+                set_height_request: 52,
                 set_focusable: true,
                 add_css_class: "cryoforge-recovery-button",
+
+                gtk::Label {
+                    set_markup: "<span size=\"larger\" weight=\"semibold\">復旧セッション</span>\n<span size=\"smaller\">CHOOSE SESSION</span>",
+                    set_justify: gtk::Justification::Center,
+                    add_css_class: "cryoforge-recovery-label",
+                },
             },
 
             /// Recovery-only error and power actions.
