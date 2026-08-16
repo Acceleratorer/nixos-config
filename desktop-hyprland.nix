@@ -1,6 +1,11 @@
-{ config, pkgs, ... }:
+{ config, desktopProfile ? "classic", lib, pkgs, ... }:
 
 let
+  isCaelestiaDerived = builtins.elem desktopProfile [
+    "caelestia-stock"
+    "caelestia-cryoforge"
+  ];
+
   hyprexpo = pkgs.callPackage ./packages/hyprexpo.nix {
     hyprland = config.programs.hyprland.package;
   };
@@ -140,11 +145,26 @@ in
     thunar
     waybar
     wl-clipboard
-  ];
+  ] ++ lib.optionals isCaelestiaDerived (with pkgs; [
+    bluez
+    ddcutil
+    gammastep
+    gpu-screen-recorder
+    material-symbols
+    pwvucontrol
+    rubik
+    sweet-nova
+    trash-cli
+    ydotool
+  ]);
 
-  fonts.packages = with pkgs; [
-    nerd-fonts.jetbrains-mono
-  ];
+  fonts.packages = with pkgs;
+    [
+      nerd-fonts.jetbrains-mono
+    ]
+    ++ lib.optionals isCaelestiaDerived [
+      nerd-fonts.caskaydia-cove
+    ];
 
   environment.sessionVariables = {
     NIXOS_OZONE_WL = "1";
