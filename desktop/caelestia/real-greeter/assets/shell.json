@@ -1,0 +1,20 @@
+{
+  "appearance": {
+    "transparency": {
+      "enabled": false
+    }
+  },
+  "general": {
+    "logo": "@NIXOS_LOGO@"
+  },
+  "lock": {
+    "enableFprint": false,
+    "enableHowdy": false,
+    "hideNotifs": false,
+    "recolourLogo": true,
+    "useWallpaper": true
+  },
+  "services": {
+    "weatherLocation": ""
+  }
+}
