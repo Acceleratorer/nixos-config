@@ -18,6 +18,7 @@ mkdir -p \
 install -m 0600 @SCHEME@ "$runtime_root/state/caelestia/scheme.json"
 install -m 0600 @CONFIG@/caelestia/shell.json "$runtime_root/config/caelestia/shell.json"
 install -m 0600 @CONFIG@/caelestia/shell-tokens.json "$runtime_root/config/caelestia/shell-tokens.json"
+install -m 0600 @AVATAR@ "$runtime_root/home/.face"
 
 export HOME="$runtime_root/home"
 export USER="${CAELESTIA_GREETER_PROCESS_USER:-greeter}"

@@ -1,0 +1,14 @@
+{
+  "id": "chisa-pool",
+  "background": {
+    "source": "chisa-pool-direct",
+    "url": "https://pbs.twimg.com/media/HM1_AEKXoAAPl26.jpg?name=orig",
+    "path": "background/chisa-pool-direct.jpg"
+  },
+  "avatar": {
+    "source": "IMG_5542.jpg",
+    "sourcePath": "/home/accelra/asfhaf/IMG_5542.jpg",
+    "path": "avatar/IMG_5542.jpg"
+  },
+  "selection": "manual"
+}

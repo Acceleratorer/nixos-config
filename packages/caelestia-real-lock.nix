@@ -1,4 +1,5 @@
 {
+  caelestiaChisaPool,
   caelestia-shell,
   caelestiaShellCryoforge,
   coreutils,
@@ -22,6 +23,15 @@ let
   verifyHashes = lib.concatStringsSep "\n" (lib.mapAttrsToList (path: hash: ''
     test "$(sha256sum "${lockRoot}/${path}" | cut -d ' ' -f 1)" = "${hash}"
   '') expectedHashes);
+  presentationHashes = {
+    "modules/lock/Content.qml" = "79f3f560a9345c8611f1331ad781edda2d3ad117dd046440d514e1492e1d9aff";
+    "modules/lock/Center.qml" = "817b15a25e2ffd2ac2b5404c903c9d66c6ab540df3c056b31418b5f8b1a02078";
+    "modules/lock/center/ProfilePic.qml" = "b38f25dd2604223bbf2dae1f2046399bd80182c17742710893a06dad64fe90a9";
+    "modules/lock/center/PasswordInput.qml" = "4177b7c2ebe9e8d96633a6fbc258e18dcfe6eecbbc0457a9efb783bb61703e17";
+  };
+  verifyPresentationHashes = lib.concatStringsSep "\n" (lib.mapAttrsToList (path: hash: ''
+    test "$(sha256sum "${lockRoot}/${path}" | cut -d ' ' -f 1)" = "${hash}"
+  '') presentationHashes);
 in
 stdenvNoCC.mkDerivation {
   pname = "caelestia-real-lock";
@@ -41,6 +51,7 @@ stdenvNoCC.mkDerivation {
     lockRoot="${lockRoot}"
 
     ${verifyHashes}
+    ${verifyPresentationHashes}
 
     for file in \
       "$lockRoot/shell.qml" \
@@ -85,6 +96,15 @@ stdenvNoCC.mkDerivation {
     cp -R --no-preserve=mode,ownership \
       "$lockRoot/assets/pam.d/." \
       "$lockOutput/assets/pam.d/"
+    install -m 0444 \
+      ${caelestiaChisaPool}/share/caelestia-chisa-pool/background/chisa-pool-direct.jpg \
+      "$lockOutput/assets/chisa-pool-direct.jpg"
+    install -m 0444 \
+      ${caelestiaChisaPool}/share/caelestia-chisa-pool/avatar/IMG_5542.jpg \
+      "$lockOutput/assets/IMG_5542.jpg"
+    install -m 0444 \
+      ${caelestiaChisaPool}/share/caelestia-chisa-pool/theme.json \
+      "$lockOutput/assets/theme.json"
     printf '%s\n' \
       'The session lock backend is the pinned Caelestia WlSessionLock/PAM tree.' \
       > "$lockOutput/README"
@@ -94,7 +114,7 @@ stdenvNoCC.mkDerivation {
 
   passthru = {
     backend = caelestiaShellCryoforge;
-    inherit quickshell;
+    inherit caelestiaChisaPool quickshell;
     upstreamRoot = lockRoot;
   };
 

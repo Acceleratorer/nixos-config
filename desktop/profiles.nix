@@ -10,6 +10,7 @@
 let
   cfg = config.nixosCryoforge;
   system = pkgs.stdenv.hostPlatform.system;
+  chisaPoolAssets = pkgs.callPackage ../packages/caelestia-chisa-pool.nix { };
 
   hyprlandTarget = "hyprland-session.target";
   classicTarget = "nixos-cryoforge-classic.target";
@@ -47,6 +48,7 @@ let
   });
   cryoforgeCaelestiaPackage = pkgs.callPackage ../packages/caelestia-cryoforge.nix {
     inherit caelestia-shell;
+    caelestiaChisaPool = chisaPoolAssets;
   };
   caelestiaPackage =
     if isCryoforge then cryoforgeCaelestiaPackage else stockCaelestiaPackage;
@@ -558,6 +560,23 @@ let
     fi
   '';
 
+  initialiseChisaPoolState = pkgs.writeShellScript "initialise-chisa-pool-state" ''
+    set -eu
+
+    state_home="''${XDG_STATE_HOME:-$HOME/.local/state}"
+    state_dir="$state_home/caelestia"
+    wallpaper_dir="$state_dir/wallpaper"
+
+    ${pkgs.coreutils}/bin/install -d -m 0700 "$state_dir" "$wallpaper_dir"
+    ${pkgs.coreutils}/bin/install -m 0600 \
+      ${chisaPoolAssets}/share/caelestia-chisa-pool/avatar/IMG_5542.jpg \
+      "$HOME/.face"
+    ${pkgs.coreutils}/bin/printf '%s' \
+      '${chisaPoolAssets}/share/caelestia-chisa-pool/background/chisa-pool-direct.jpg' \
+      > "$wallpaper_dir/path.txt"
+    ${pkgs.coreutils}/bin/chmod 0600 "$wallpaper_dir/path.txt"
+  '';
+
   startClassicFallback = pkgs.writeShellScript "start-classic-fallback" ''
     exec ${pkgs.systemd}/bin/systemctl \
       --user --no-block start ${classicTarget}
@@ -650,6 +669,11 @@ in
             run ${pkgs.coreutils}/bin/install -m 0600 \
               ${caelestiaShellConfig} "$shell_config"
           fi
+        '');
+
+      initialiseChisaPoolTheme = lib.mkIf isCryoforge
+        (lib.hm.dag.entryAfter [ "initialiseCaelestiaShellConfig" ] ''
+          run ${initialiseChisaPoolState}
         '');
 
       migrateLegacyCaelestiaStockHyprDirectory = lib.mkIf isCaelestiaDerived

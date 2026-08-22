@@ -1,11 +1,11 @@
 {
+  caelestiaChisaPool,
   caelestia-shell,
   cage,
   coreutils,
   greetd,
   hyprland,
   lib,
-  librsvg,
   makeFontsConf,
   makeWrapper,
   material-symbols,
@@ -14,11 +14,15 @@
   qt6,
   rubik,
   stdenvNoCC,
+  systemd,
+  writeShellScript,
   wlr-randr,
 }:
 
 let
   system = stdenvNoCC.hostPlatform.system;
+  chisaPoolCachingImage = ../desktop/caelestia/chisa-pool/CachingImage.qml;
+  chisaPoolCachingImageSha256 = "bc6c1658f0f2748ae96970b07f0e20aa86baf1dd07437e5a7726d0cddc0e9419";
   upstreamPackage = caelestia-shell.packages.${system}.with-cli;
   upstreamRoot = "${upstreamPackage}/share/caelestia-shell";
   quickshell = builtins.elemAt upstreamPackage.buildInputs 0;
@@ -33,6 +37,13 @@ let
     qt6.qtdeclarative
     qt6.qtwayland
   ];
+
+  hyprlandSessionCommand = writeShellScript "caelestia-hyprland-session" ''
+    exec ${systemd}/bin/systemd-cat \
+      --identifier=caelestia-hyprland-session \
+      -- \
+      ${hyprland}/bin/start-hyprland "$@"
+  '';
 
   fontconfig = makeFontsConf {
     fontDirectories = [
@@ -69,6 +80,9 @@ let
     test "$(${coreutils}/bin/sha256sum "${upstreamRoot}/${path}" | ${coreutils}/bin/cut -d ' ' -f 1)" = "${hash}"
   '') expectedHashes);
 in
+assert lib.assertMsg
+  (builtins.hashFile "sha256" chisaPoolCachingImage == chisaPoolCachingImageSha256)
+  "Chisa Pool CachingImage.qml checksum mismatch";
 stdenvNoCC.mkDerivation {
   pname = "caelestia-real-greeter";
   version = "1.0.0-phase13a";
@@ -76,7 +90,6 @@ stdenvNoCC.mkDerivation {
   src = ../desktop/caelestia;
   dontUnpack = true;
   nativeBuildInputs = [
-    librsvg
     makeWrapper
   ];
 
@@ -134,11 +147,20 @@ stdenvNoCC.mkDerivation {
     install -m 0444 "$src/real-greeter/assets/shell.json" "$config/caelestia/shell.json"
     install -m 0444 "$src/real-greeter/assets/shell-tokens.json" "$config/caelestia/shell-tokens.json"
     install -m 0444 "$src/real-greeter/assets/scheme.json" "$root/assets/greeter-scheme.json"
+    install -m 0444 ${chisaPoolCachingImage} "$root/components/images/CachingImage.qml"
     substituteInPlace "$config/caelestia/shell.json" \
       --replace-fail '@NIXOS_LOGO@' '${nixos-icons}/share/icons/hicolor/scalable/apps/nix-snowflake.svg'
 
-    # Use the repository's existing identity wallpaper as an immutable greeter asset.
-    rsvg-convert --width 2560 --height 1600 ${../desktop/wallpaper.svg} --output "$root/assets/greeter-wallpaper.png"
+    install -m 0444 \
+      ${caelestiaChisaPool}/share/caelestia-chisa-pool/background/chisa-pool-direct.jpg \
+      "$root/assets/chisa-pool-direct.jpg"
+    ln -s chisa-pool-direct.jpg "$root/assets/greeter-wallpaper.png"
+    install -m 0444 \
+      ${caelestiaChisaPool}/share/caelestia-chisa-pool/avatar/IMG_5542.jpg \
+      "$root/assets/IMG_5542.jpg"
+    install -m 0444 \
+      ${caelestiaChisaPool}/share/caelestia-chisa-pool/theme.json \
+      "$root/assets/theme.json"
 
     # Keep the exact pinned visual tree intact after the greeter-only overlays.
     ${lib.concatStringsSep "\n" (lib.mapAttrsToList (path: hash: ''
@@ -166,6 +188,7 @@ stdenvNoCC.mkDerivation {
     substituteInPlace "$out/bin/caelestia-real-greeter-qml" \
       --replace-fail '@SCHEME@' "$root/assets/greeter-scheme.json" \
       --replace-fail '@CONFIG@' "$config" \
+      --replace-fail '@AVATAR@' "$root/assets/IMG_5542.jpg" \
       --replace-fail '@QUICKSHELL@' '${quickshell}/bin/qs'
     wrapProgram "$out/bin/caelestia-real-greeter-qml" \
       --set CAELESTIA_LIB_DIR ${extras}/lib \
@@ -191,20 +214,21 @@ stdenvNoCC.mkDerivation {
 
     substituteInPlace "$root/real-greeter/adapters/GreetdController.qml" \
       --replace-fail '@GREETER_USER@' 'accelra' \
-      --replace-fail '@SESSION_COMMAND@' '${hyprland}/bin/start-hyprland'
+      --replace-fail '@SESSION_COMMAND@' '${hyprlandSessionCommand}'
     substituteInPlace "$root/tests/fake_greetd_protocol.py" \
-      --replace-fail '@SESSION_COMMAND@' '${hyprland}/bin/start-hyprland'
+      --replace-fail '@SESSION_COMMAND@' '${hyprlandSessionCommand}'
 
     runHook postInstall
   '';
 
   passthru = {
-    inherit quickshell plugin m3shapes upstreamPackage;
+    inherit caelestiaChisaPool chisaPoolCachingImage chisaPoolCachingImageSha256 quickshell plugin m3shapes upstreamPackage;
     fakegreet = greetd;
     formatter = qt6.qtdeclarative;
     renderer = cage;
+    fontconfig = fontconfig;
     outputManager = wlr-randr;
-    sessionCommand = "${hyprland}/bin/start-hyprland";
+    sessionCommand = hyprlandSessionCommand;
     upstreamRevision = "817a220e8e87c4df9f3681033a0d8a8054cdaa30";
   };
 
