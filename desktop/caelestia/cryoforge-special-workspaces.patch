@@ -1,0 +1,113 @@
+--- a/modules/bar/Bar.qml
++++ b/modules/bar/Bar.qml
+@@ -80,10 +80,7 @@
+         if (ch?.entryId === "workspaces" && Config.bar.scrollActions.workspaces) {
+             // Workspace scroll
+             const mon = (GlobalConfig.bar.workspaces.perMonitorWorkspaces ? Hypr.monitorFor(screen) : Hypr.focusedMonitor);
+-            const specialWs = mon?.lastIpcObject.specialWorkspace.name;
+-            if (specialWs?.length > 0)
+-                Hypr.dispatch(Hypr.usingLua ? `hl.dsp.workspace.toggle_special("${specialWs.slice(8)}")` : `togglespecialworkspace ${specialWs.slice(8)}`);
+-            else if (angleDelta.y < 0 || (GlobalConfig.bar.workspaces.perMonitorWorkspaces ? mon.activeWorkspace?.id : Hypr.activeWsId) > 1)
++            if (angleDelta.y < 0 || (GlobalConfig.bar.workspaces.perMonitorWorkspaces ? mon.activeWorkspace?.id : Hypr.activeWsId) > 1)
+                 Hypr.dispatch(Hypr.usingLua ? `hl.dsp.focus({ workspace = "r${angleDelta.y > 0 ? "-" : "+"}1" })` : `workspace r${angleDelta.y > 0 ? "-" : "+"}1`);
+         } else if (y < screen.height / 2 && Config.bar.scrollActions.volume) {
+             // Volume scroll on top half
+--- a/modules/bar/components/workspaces/Workspaces.qml
++++ b/modules/bar/components/workspaces/Workspaces.qml
+@@ -1,7 +1,6 @@
+ pragma ComponentBehavior: Bound
+
+ import QtQuick
+-import QtQuick.Effects
+ import QtQuick.Layouts
+ import Quickshell
+ import Caelestia.Config
+@@ -14,7 +13,6 @@
+     required property ShellScreen screen
+     required property bool fullscreen
+
+-    readonly property bool onSpecial: (GlobalConfig.bar.workspaces.perMonitorWorkspaces ? Hypr.monitorFor(screen) : Hypr.focusedMonitor)?.lastIpcObject.specialWorkspace?.name !== ""
+     readonly property int activeWsId: GlobalConfig.bar.workspaces.perMonitorWorkspaces ? (Hypr.monitorFor(screen).activeWorkspace?.id ?? 1) : Hypr.activeWsId
+
+     readonly property var occupied: {
+@@ -25,8 +23,6 @@
+     }
+     readonly property int groupOffset: Math.floor((activeWsId - 1) / Config.bar.workspaces.shown) * Config.bar.workspaces.shown
+
+-    property real blur: onSpecial ? 1 : 0
+-
+     implicitWidth: Tokens.sizes.bar.innerWidth
+     implicitHeight: layout.implicitHeight + Tokens.padding.small
+
+@@ -35,17 +31,8 @@
+
+     Item {
+         anchors.fill: parent
+-        scale: root.onSpecial ? 0.8 : 1
+-        opacity: root.onSpecial ? 0.5 : 1
+         visible: !root.fullscreen
+
+-        layer.enabled: root.blur > 0
+-        layer.effect: MultiEffect {
+-            blurEnabled: true
+-            blur: root.blur
+-            blurMax: 32
+-        }
+-
+         Loader {
+             asynchronous: true
+             active: Config.bar.workspaces.occupiedBg
+@@ -100,53 +87,7 @@
+                     return;
+                 if (Hypr.activeWsId !== ws)
+                     Hypr.dispatch(Hypr.usingLua ? `hl.dsp.focus({ workspace = "${ws}" })` : `workspace ${ws}`);
+-                else
+-                    Hypr.dispatch(Hypr.usingLua ? 'hl.dsp.workspace.toggle_special("special")' : "togglespecialworkspace special");
+             }
+         }
+-
+-        Behavior on scale {
+-            Anim {}
+-        }
+-
+-        Behavior on opacity {
+-            Anim {
+-                type: Anim.DefaultEffects
+-            }
+-        }
+-    }
+-
+-    Loader {
+-        id: specialWs
+-
+-        asynchronous: true
+-
+-        anchors.fill: parent
+-        anchors.margins: Tokens.padding.extraSmall
+-
+-        active: opacity > 0
+-
+-        scale: root.onSpecial ? 1 : 0.5
+-        opacity: root.onSpecial ? 1 : 0
+-
+-        sourceComponent: SpecialWorkspaces {
+-            screen: root.screen
+-        }
+-
+-        Behavior on scale {
+-            Anim {}
+-        }
+-
+-        Behavior on opacity {
+-            Anim {
+-                type: Anim.DefaultEffects
+-            }
+-        }
+-    }
+-
+-    Behavior on blur {
+-        Anim {
+-            type: Anim.StandardSmall
+-        }
+     }
+ }

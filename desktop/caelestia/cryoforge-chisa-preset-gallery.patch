@@ -1,0 +1,38 @@
+diff --git a/modules/nexus/PageCompRegistry.qml b/modules/nexus/PageCompRegistry.qml
+index 8bfbd52..a7af2a4 100644
+--- a/modules/nexus/PageCompRegistry.qml
++++ b/modules/nexus/PageCompRegistry.qml
+@@ -33,6 +33,9 @@ QtObject {
+                 Component {
+                     WallpaperCategory {}
+                 }
++                Component {
++                    ChisaPresetGallery {}
++                }
+                 Component {
+                     ColourSelect {}
+                 }
+diff --git a/modules/nexus/pages/WallpaperAndStyle.qml b/modules/nexus/pages/WallpaperAndStyle.qml
+index 226b37a..c63cd8e 100644
+--- a/modules/nexus/pages/WallpaperAndStyle.qml
++++ b/modules/nexus/pages/WallpaperAndStyle.qml
+@@ -159,0 +160,12 @@ PageBase {
++            IconTextButton {
++                icon: "wallpaper"
++                text: qsTr("Chisa presets")
++                font: Tokens.font.body.large
++                isRound: true
++                shapeMorph: true
++                type: IconTextButton.Tonal
++                horizontalPadding: Tokens.padding.extraLarge
++                verticalPadding: Tokens.padding.medium
++                onClicked: root.nState.openSubPage(3) // Chisa preset gallery
++            }
++
+@@ -167,5 +179,5 @@ PageBase {
+                 horizontalPadding: Tokens.padding.extraLarge
+                 verticalPadding: Tokens.padding.medium
+-                onClicked: root.nState.openSubPage(3) // Colours page
++                onClicked: root.nState.openSubPage(4) // Colours page
+             }
+         }
