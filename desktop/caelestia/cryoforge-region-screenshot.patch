@@ -1,0 +1,39 @@
+diff --git a/modules/areapicker/AreaPicker.qml b/modules/areapicker/AreaPicker.qml
+index 6718878..5933e4c 100644
+--- a/modules/areapicker/AreaPicker.qml
++++ b/modules/areapicker/AreaPicker.qml
+@@ -15,6 +15,10 @@ Scope {
+         property bool closing
+         property bool clipboardOnly
+ 
++        function openRegion(): void {
++            Quickshell.execDetached(["@SCREENSHOT_REGION_COMMAND@"]);
++        }
++
+         Variants {
+             model: Screens.screens
+ 
+@@ -49,10 +53,7 @@ Scope {
+ 
+     IpcHandler {
+         function open(): void {
+-            root.freeze = false;
+-            root.closing = false;
+-            root.clipboardOnly = false;
+-            root.activeAsync = true;
++            root.openRegion();
+         }
+ 
+         function openFreeze(): void {
+@@ -84,10 +85,7 @@ Scope {
+         name: "screenshot"
+         description: "Open screenshot tool"
+         onPressed: {
+-            root.freeze = false;
+-            root.closing = false;
+-            root.clipboardOnly = false;
+-            root.activeAsync = true;
++            root.openRegion();
+         }
+     }
+ 

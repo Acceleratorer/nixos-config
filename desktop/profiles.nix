@@ -376,6 +376,9 @@ let
     (lib.pipe pristineKeybindsLua [
       (replaceExactly "keybinds.lua move-window special-workspace binds" keybindsMoveSpecial "")
       (replaceExactly "keybinds.lua special-workspace toggles" keybindsToggleSpecial "")
+      (replaceExactly "keybinds.lua Print screenshot bind"
+        ''create_bind(vars.kbScreenshot, hl.dsp.exec_cmd("caelestia screenshot"), locked)''
+        ''create_bind(vars.kbScreenshot, hl.dsp.global("caelestia:screenshot"), locked)'')
     ]);
 
   upstreamHyprlandFiles = [

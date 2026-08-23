@@ -223,6 +223,23 @@
         touch "$out"
       '';
 
+      phase17a-screenshot-contract = pkgs.runCommand "phase17a-screenshot-contract-tests" {
+        nativeBuildInputs = [
+          pkgs.bash
+          pkgs.coreutils
+          pkgs.findutils
+          pkgs.gnugrep
+          pkgs.gnused
+        ];
+      } ''
+        bash ${./tests/phase17a/test_screenshot_contract.sh} \
+          ${caelestiaCryoforge}/share/caelestia-shell/modules/areapicker/AreaPicker.qml \
+          ${./desktop/caelestia/screenshot-region.sh} \
+          ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/keybinds.lua".source} \
+          ${cryoforgeSystem.config.home-manager.users.accelra.programs.caelestia.cli.package}
+        touch "$out"
+      '';
+
       chisa-pool-previews = caelestiaChisaPoolPreviews;
 
       phase13b-recovery-launcher = pkgs.runCommand "phase13b-recovery-launcher-tests" {
