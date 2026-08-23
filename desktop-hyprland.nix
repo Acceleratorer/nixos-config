@@ -148,7 +148,6 @@ in
   ] ++ lib.optionals isCaelestiaDerived (with pkgs; [
     bluez
     ddcutil
-    gammastep
     gpu-screen-recorder
     material-symbols
     pwvucontrol

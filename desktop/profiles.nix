@@ -225,35 +225,16 @@ let
     "execs.lua"
     "68e0e091d522ba40093896ac27f53c24c8303d21026632b19b23dbbcf4c70e79"
     "${caelestia-dots}/hypr/hyprland/execs.lua";
-  execsStartupBlock = ''
-    hl.on("hyprland.start", function()
-        -- Keyring and auth
-        hl.exec_cmd("gnome-keyring-daemon --start --components=secrets")
-        hl.exec_cmd("/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1")
-
-        -- Clipboard history
-        hl.exec_cmd("wl-paste --type text --watch cliphist store")
-        hl.exec_cmd("wl-paste --type image --watch cliphist store")
-
-        -- Auto delete trash 30 days old
-        hl.exec_cmd("trash-empty 30")
-
-        -- Cursors
-        hl.exec_cmd("hyprctl setcursor " .. vars.cursorTheme .. " " .. vars.cursorSize)
-        hl.exec_cmd("gsettings set org.gnome.desktop.interface cursor-theme " .. vars.cursorTheme)
-        hl.exec_cmd("gsettings set org.gnome.desktop.interface cursor-size " .. vars.cursorSize)
-
-        -- Location provider and night light
-        hl.exec_cmd("/usr/lib/geoclue-2.0/demos/agent")
-        hl.exec_cmd("sleep 1 && gammastep")
-
-        -- Forward bluetooth media commands to MPRIS
-        hl.exec_cmd("mpris-proxy")
-
-        -- Start shell
-        hl.exec_cmd("caelestia shell -d")
-    end)
-  '';
+  execsStartupStart = "hl.on(\"hyprland.start\", function()\n";
+  execsStartupEnd = "end)\n";
+  execsStartParts = lib.splitString execsStartupStart pristineExecsLua;
+  execsEndParts =
+    lib.splitString execsStartupEnd
+      (builtins.elemAt execsStartParts 1);
+  execsStartupBlock =
+    assert builtins.length execsStartParts == 2;
+    assert builtins.length execsEndParts >= 2;
+    execsStartupStart + builtins.head execsEndParts + execsStartupEnd;
   adaptedExecsLua = assert builtins.length (lib.splitString execsStartupBlock pristineExecsLua) == 2;
     pkgs.writeText "caelestia-stock-execs.lua" (lib.replaceStrings
       [ execsStartupBlock ]
@@ -958,18 +939,6 @@ in
         };
 
         Install.WantedBy = [ caelestiaSystemTarget ];
-      };
-
-      caelestia-geoclue-agent = mkStockService {
-        description = "${caelestiaDerivedLabel} GeoClue demo agent";
-        execStart = "${pkgs.geoclue2-with-demo-agent}/libexec/geoclue-2.0/demos/agent";
-      };
-
-      caelestia-gammastep = mkStockService {
-        description = "${caelestiaDerivedLabel} Gammastep night light";
-        after = [ "caelestia-geoclue-agent.service" ];
-        execStartPre = "${pkgs.coreutils}/bin/sleep 1";
-        execStart = "${pkgs.gammastep}/bin/gammastep";
       };
 
       caelestia-mpris-proxy = mkStockService {
