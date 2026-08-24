@@ -119,6 +119,10 @@
           "${nixpkgs.lib.getExe recoveryGreeter}"
         ]
       );
+      classicSystem = mkNixos { };
+      stockSystem = mkNixos {
+        desktopProfile = "caelestia-stock";
+      };
     in {
     packages.${system} = {
       caelestia-chisa-pool = caelestiaChisaPool;
@@ -222,6 +226,47 @@
           ${./desktop/caelestia/chisa-pool/ChisaPresetWallpapers.qml}
         touch "$out"
       '';
+
+      phase16b-cryoforge-window-feel-contract =
+        assert
+          cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/variables.lua".source
+          == realGreeterSystem.config.home-manager.users.accelra.xdg.configFile."hypr/variables.lua".source;
+        pkgs.runCommand "phase16b-cryoforge-window-feel-contract-tests" {
+          nativeBuildInputs = [
+            pkgs.bash
+            pkgs.coreutils
+            pkgs.gnugrep
+            pkgs.gnused
+          ];
+        } ''
+          bash ${./tests/phase16b/test_window_feel_contract.sh} \
+            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/variables.lua".source} \
+            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/general.lua".source} \
+            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/decoration.lua".source} \
+            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/animations.lua".source} \
+            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/rules.lua".source} \
+            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/execs.lua".source} \
+            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/utils/functions.lua".source} \
+            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/keybinds.lua".source} \
+            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/gestures.lua".source} \
+            ${stockSystem.config.home-manager.users.accelra.xdg.configFile."hypr/variables.lua".source} \
+            ${stockSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/decoration.lua".source} \
+            ${stockSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/animations.lua".source} \
+            ${stockSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/rules.lua".source} \
+            ${stockSystem.config.home-manager.users.accelra.xdg.configFile."hypr/utils/functions.lua".source} \
+            ${stockSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/keybinds.lua".source} \
+            ${stockSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/gestures.lua".source} \
+            ${caelestia-dots} \
+            ${./desktop/hypr/hyprland.conf} \
+            ${./desktop/profiles.nix} \
+            ${./flake.nix} \
+            ${./desktop/caelestia/cryoforge-special-workspaces.patch} \
+            ${./desktop/caelestia/cryoforge-region-screenshot.patch} \
+            ${./desktop/caelestia/screenshot-region.sh} \
+            ${./desktop/caelestia/cryoforge-chisa-preset-gallery.patch} \
+            ${./packages/caelestia-cryoforge.nix}
+          touch "$out"
+        '';
 
       phase17a-screenshot-contract = pkgs.runCommand "phase17a-screenshot-contract-tests" {
         nativeBuildInputs = [
@@ -405,11 +450,9 @@
         '';
     };
 
-    nixosConfigurations.nixos = mkNixos { };
+    nixosConfigurations.nixos = classicSystem;
 
-    nixosConfigurations.nixos-caelestia-stock = mkNixos {
-      desktopProfile = "caelestia-stock";
-    };
+    nixosConfigurations.nixos-caelestia-stock = stockSystem;
 
     nixosConfigurations.nixos-caelestia-cryoforge = cryoforgeSystem;
 

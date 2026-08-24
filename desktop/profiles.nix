@@ -267,7 +267,135 @@ let
       (replaceExactly "variables.lua workspace swipe fingers"
         ''    workspaceSwipeFingers      = 4,''
         ''    workspaceSwipeFingers      = 3,'')
+      (replaceExactly "variables.lua blur size"
+        ''    blurSize                   = 8,''
+        ''    blurSize                   = 6,'')
+      (replaceExactly "variables.lua shadow range"
+        ''    shadowRange                = 15,''
+        ''    shadowRange                = 10,'')
+      (replaceExactly "variables.lua shadow render power"
+        ''    shadowRenderPower          = 4,''
+        ''    shadowRenderPower          = 3,'')
+      (replaceExactly "variables.lua shadow colour"
+        ''    shadowColour               = "rgba(" .. scheme.inversePrimary .. "10)",''
+        ''    shadowColour               = "rgba(" .. scheme.shadow .. "45)",'')
+      (replaceExactly "variables.lua inner gaps"
+        ''    windowGapsIn               = 5,''
+        ''    windowGapsIn               = 6,'')
+      (replaceExactly "variables.lua outer gaps"
+        ''    windowGapsOut              = 10,''
+        ''    windowGapsOut              = 12,'')
+      (replaceExactly "variables.lua single-window outer gaps"
+        ''    singleWindowGapsOut        = 20,''
+        ''    singleWindowGapsOut        = 18,'')
+      (replaceExactly "variables.lua opacity policy"
+        ''    windowOpacity              = 0.95,''
+        (
+          "activeWindowOpacity        = 1.0,\n"
+          + "    inactiveWindowOpacity      = 0.98,\n"
+          + "    fullscreenWindowOpacity    = 1.0,\n"
+          + "    opaqueWindowOpacity        = \"1.0 override 1.0 override 1.0 override\",\n"
+          + "    specialWorkspaceDim        = 0.10,\n"
+        ))
+      (replaceExactly "variables.lua window rounding"
+        ''    windowRounding             = 15,''
+        ''    windowRounding             = 14,'')
+      (replaceExactly "variables.lua window border size"
+        ''    windowBorderSize           = 1,''
+        ''    windowBorderSize           = 2,'')
+      (replaceExactly "variables.lua active window border"
+        ''    activeWindowBorderColour   = "rgba(" .. scheme.primary .. "e6)",''
+        (
+          "activeWindowBorderColour   = {\n"
+          + "        colors = {\n"
+          + "            \"rgba(\" .. scheme.term10 .. \"f2)\",\n"
+          + "            \"rgba(\" .. scheme.term13 .. \"e6)\",\n"
+          + "        },\n"
+          + "        angle = 45,\n"
+          + "    },\n"
+        ))
+      (replaceExactly "variables.lua inactive window border"
+        ''    inactiveWindowBorderColour = "rgba(" .. scheme.onSurfaceVariant .. "11)",''
+        ''    inactiveWindowBorderColour = "rgba(" .. scheme.outlineVariant .. "8c)",'')
     ]);
+
+  pristineDecorationLua = guardedReadFile
+    "decoration.lua"
+    "9368f0be66ab7562ce46b38e5e42153eef555693b903a1300dff5fbcaa6cd2af"
+    "${caelestia-dots}/hypr/hyprland/decoration.lua";
+  cryoforgeDecorationLua = pkgs.writeText "caelestia-cryoforge-decoration.lua"
+    (lib.pipe pristineDecorationLua [
+      (replaceExactly "decoration.lua opacity and special-workspace policy"
+        ''        rounding = vars.windowRounding,''
+        (
+          "rounding           = vars.windowRounding,\n"
+          + "        active_opacity     = vars.activeWindowOpacity,\n"
+          + "        inactive_opacity   = vars.inactiveWindowOpacity,\n"
+          + "        fullscreen_opacity = vars.fullscreenWindowOpacity,\n"
+          + "        dim_special        = vars.specialWorkspaceDim,\n"
+        ))
+      (replaceExactly "decoration.lua opaque-content blur policy"
+        ''            ignore_opacity    = true, -- Allows opacity blurring''
+        ''            ignore_opacity    = false, -- Opaque content never receives compositor blur'')
+    ]);
+
+  pristineAnimationsLua = guardedReadFile
+    "animations.lua"
+    "2ca023d2a7e8ae2a4c8dc854b3f0395a8d8e238d8df4103d6f2aebd35a84f4cc"
+    "${caelestia-dots}/hypr/hyprland/animations.lua";
+  cryoforgeAnimationsLua = pkgs.writeText "caelestia-cryoforge-animations.lua"
+    (replaceExactly "animations.lua window-feel policy"
+      pristineAnimationsLua
+      ''
+        hl.config({
+            animations = {
+                enabled = true,
+            },
+        })
+
+        -- Short, non-spring curves keep focus changes legible without overshoot.
+        hl.curve("specialWorkSwitch", { type = "bezier", points = { { 0.16, 1 }, { 0.3, 1 } } })
+        hl.curve("specialWorkExit", { type = "bezier", points = { { 0.4, 0 }, { 1, 1 } } })
+        hl.curve("emphasizedAccel", { type = "bezier", points = { { 0.3, 0 }, { 0.8, 0.15 } } })
+        hl.curve("emphasizedDecel", { type = "bezier", points = { { 0.05, 0.7 }, { 0.1, 1 } } })
+        hl.curve("standard", { type = "bezier", points = { { 0.2, 0 }, { 0, 1 } } })
+
+        hl.animation({ leaf = "layersIn", enabled = true, speed = 4.5, bezier = "emphasizedDecel", style = "slide" })
+        hl.animation({ leaf = "layersOut", enabled = true, speed = 3.2, bezier = "emphasizedAccel", style = "slide" })
+        hl.animation({ leaf = "fadeLayers", enabled = true, speed = 4.5, bezier = "standard" })
+
+        hl.animation({ leaf = "windowsIn", enabled = true, speed = 4.2, bezier = "emphasizedDecel" })
+        hl.animation({ leaf = "windowsOut", enabled = true, speed = 2.6, bezier = "emphasizedAccel" })
+        hl.animation({ leaf = "windowsMove", enabled = true, speed = 4.8, bezier = "standard" })
+        hl.animation({ leaf = "workspaces", enabled = true, speed = 4.2, bezier = "standard" })
+
+        hl.animation({
+            leaf    = "specialWorkspace",
+            enabled = true,
+            speed   = 4,
+            bezier  = "specialWorkSwitch",
+            style   = "slidefadevert 10%"
+        })
+        hl.animation({
+            leaf    = "specialWorkspaceIn",
+            enabled = true,
+            speed   = 4.2,
+            bezier  = "specialWorkSwitch",
+            style   = "slidefadevert 10%"
+        })
+        hl.animation({
+            leaf    = "specialWorkspaceOut",
+            enabled = true,
+            speed   = 3,
+            bezier  = "specialWorkExit",
+            style   = "slidefadevert 10%"
+        })
+
+        hl.animation({ leaf = "fade", enabled = true, speed = 5, bezier = "standard" })
+        hl.animation({ leaf = "fadeDim", enabled = true, speed = 5, bezier = "standard" })
+        hl.animation({ leaf = "border", enabled = true, speed = 5, bezier = "standard" })
+      ''
+      pristineAnimationsLua);
 
   pristineRulesLua = guardedReadFile
     "rules.lua"
@@ -307,8 +435,185 @@ let
     create_tag(communication_app_tag, { workspace = "special:communication" })
     create_tag(todo_app_tag, { workspace = "special:todo" })
   '';
+  rulesDefaultWindowPolicy = ''
+    -- Apply default opacity to all windows except fullscreen
+    hl.window_rule({ match = { fullscreen = false }, opacity = vars.windowOpacity .. " override" })
+
+    -- Center all floating windows except xwayland windows (xwayland popups count as windows)
+    hl.window_rule({ match = { float = true, xwayland = false }, center = true })
+
+    -- Picture in picture (move and resize done via resizer in execs.lua)
+    hl.window_rule({
+        match             = { title = "Picture(-| )in(-| )[Pp]icture" },
+        move              = "(monitor_w*0.98-window_w) (monitor_h*0.97-window_h)", -- Initial move so window doesn't jump so much
+        pin               = true,
+        float             = true,
+        keep_aspect_ratio = true,
+    })
+  '';
+  cryoforgeDefaultWindowPolicy = ''
+    -- Fullscreen content is gapless, undecorated, opaque, and unblurred.
+    hl.window_rule({
+        match       = { fullscreen = true },
+        border_size = 0,
+        rounding    = 0,
+        no_shadow   = true,
+        no_blur     = true,
+        opaque      = true,
+        opacity     = vars.opaqueWindowOpacity,
+    })
+
+    -- Picture in picture (final monitor-relative resize/move is handled by
+    -- the existing resizer in execs.lua and utils/functions.lua).
+    hl.window_rule({
+        match             = { title = "Picture(-| )in(-| )[Pp]icture" },
+        move              = "(monitor_w*0.97-window_w) (monitor_h*0.97-window_h)",
+        pin               = true,
+        float             = true,
+        keep_aspect_ratio = true,
+        no_blur           = true,
+        opaque            = true,
+        opacity           = vars.opaqueWindowOpacity,
+    })
+  '';
+  rulesProtectedDialogRouting = ''
+    -- Authentication and password-manager dialogs stay readable and opaque.
+    tagged_rule(protected_dialog_tag, {
+        { class = "polkit-gnome-authentication-agent-1" },
+        { class = "Bitwarden" },
+        { class = "nngceckbapebfimnlniiiahkandclblb" },
+        { title = "^Extension: %(Bitwarden Password Manager%) %- Bitwarden" },
+        { title = "^(Authentication Required|Authenticate|Password Required)$" },
+    })
+
+
+  '';
+  rulesBroadFileUtilityTitles = ''
+    tagged_rule(float_tag, {
+        "File (Operation|Upload)( Progress)?", -- File manager operation progress (upload, move, copy, etc)
+        ".* Properties",                       -- File properties
+    }, "title")
+  '';
+  cryoforgeFileUtilityRules = ''
+    tagged_rule(float_tag, {
+        { class = "[Tt]hunar", title = "File (Operation|Upload)( Progress)?" },
+        { class = "[Tt]hunar", title = ".* Properties" },
+    })
+  '';
+  rulesTagDefinitions = ''
+    create_tag(opaque_tag, { opaque = true })
+    create_tag(float_tag, { float = true })
+    create_tag(float_50_60_tag, { float = true, size = "(monitor_w*0.5) (monitor_h*0.6)", center = true })
+    create_tag(float_60_70_tag, { float = true, size = "(monitor_w*0.6) (monitor_h*0.7)", center = true })
+    create_tag(float_70_80_tag, { float = true, size = "(monitor_w*0.7) (monitor_h*0.8)", center = true })
+    create_tag(game_tag, { opaque = true, immediate = true, idle_inhibit = "always" })
+    create_tag(xwl_popup_tag, {
+        no_dim = true,
+        no_shadow = true,
+        no_blur = true,
+        opaque = true,
+        rounding = math.min(10, vars.windowRounding), -- Popups are usually small, so we want to limit the rounding
+    })
+  '';
+  cryoforgeTagDefinitions = ''
+    create_tag(opaque_tag, {
+        opaque  = true,
+        no_blur = true,
+        opacity = vars.opaqueWindowOpacity,
+    })
+    create_tag(float_tag, {
+        float   = true,
+        center  = true,
+        opaque  = true,
+        no_blur = true,
+        opacity = vars.opaqueWindowOpacity,
+    })
+    create_tag(float_50_60_tag, {
+        float   = true,
+        size    = "(monitor_w*0.5) (monitor_h*0.6)",
+        center  = true,
+        opaque  = true,
+        no_blur = true,
+        opacity = vars.opaqueWindowOpacity,
+    })
+    create_tag(float_60_70_tag, {
+        float   = true,
+        size    = "(monitor_w*0.6) (monitor_h*0.7)",
+        center  = true,
+        opaque  = true,
+        no_blur = true,
+        opacity = vars.opaqueWindowOpacity,
+    })
+    create_tag(float_70_80_tag, {
+        float   = true,
+        size    = "(monitor_w*0.7) (monitor_h*0.8)",
+        center  = true,
+        opaque  = true,
+        no_blur = true,
+        opacity = vars.opaqueWindowOpacity,
+    })
+    create_tag(game_tag, {
+        opaque       = true,
+        no_blur      = true,
+        opacity      = vars.opaqueWindowOpacity,
+        immediate    = true,
+        idle_inhibit = "always",
+    })
+    create_tag(protected_dialog_tag, {
+        float   = true,
+        center  = true,
+        opaque  = true,
+        no_blur = true,
+        opacity = vars.opaqueWindowOpacity,
+    })
+    create_tag(xwl_popup_tag, {
+        no_dim    = true,
+        no_shadow = true,
+        no_blur   = true,
+        opaque    = true,
+        opacity   = vars.opaqueWindowOpacity,
+        rounding  = math.min(10, vars.windowRounding), -- Popups are usually small, so we want to limit the rounding
+    })
+  '';
   cryoforgeRulesLua = pkgs.writeText "caelestia-cryoforge-rules.lua"
     (lib.pipe pristineRulesLua [
+      (replaceExactly "rules.lua default opacity, centering, and PiP policy"
+        rulesDefaultWindowPolicy
+        cryoforgeDefaultWindowPolicy)
+      (replaceExactly "rules.lua protected dialog tag declaration"
+        ''local xwl_popup_tag = "xwl_popup"''
+        (
+          "local xwl_popup_tag = \"xwl_popup\"\n"
+          + "local protected_dialog_tag = \"protected_dialog\""
+        ))
+      (replaceExactly "rules.lua opaque terminal classes"
+        ''    "foot",                          -- Terminal''
+        ''    "foot|kitty",                    -- Terminals'')
+      (replaceExactly "rules.lua narrow file utility matchers"
+        rulesBroadFileUtilityTitles
+        cryoforgeFileUtilityRules)
+      (replaceExactly "rules.lua speculative Library floater"
+        (
+          "    \"Library\",                              -- * I don't remember what this matches...\n"
+          + "}, \"title\")"
+        )
+        "}, \"title\")")
+      (replaceExactly "rules.lua protected dialog routing"
+        ''
+          -- Games
+        ''
+        ''
+          ${rulesProtectedDialogRouting}-- Games
+        '')
+      (replaceExactly "rules.lua readable tag definitions"
+        rulesTagDefinitions
+        cryoforgeTagDefinitions)
+      (replaceExactly "rules.lua exact Caelestia layer namespaces"
+        ''hl.layer_rule({ match = { namespace = "caelestia-(drawers|background)" }, animation = "fade" })''
+        (
+          "hl.layer_rule({ match = { namespace = \"caelestia-drawers\" }, animation = \"fade\" })\n"
+          + "hl.layer_rule({ match = { namespace = \"caelestia-background\" }, animation = \"fade\" })"
+        ))
       (replaceExactly "rules.lua special-workspace tag names" rulesSpecialTagNames "")
       (replaceExactly "rules.lua special-workspace routing" rulesSpecialRouting "")
       (replaceExactly "rules.lua special-workspace tag definitions" rulesSpecialTagDefinitions "")
@@ -360,7 +665,24 @@ let
       (replaceExactly "keybinds.lua Print screenshot bind"
         ''create_bind(vars.kbScreenshot, hl.dsp.exec_cmd("caelestia screenshot"), locked)''
         ''create_bind(vars.kbScreenshot, hl.dsp.global("caelestia:screenshot"), locked)'')
+      (replaceExactly "keybinds.lua manual PiP floating target"
+        ''        if not a.floating then table.insert(pip, 1, hl.dsp.window.float()) end''
+        ''        if not a.floating then table.insert(pip, 1, hl.dsp.window.float({ action = "on", window = a })) end'')
     ]);
+
+  pristineFunctionsLua = guardedReadFile
+    "functions.lua"
+    "f604188a10177c19061a945d520c496dff1c697cd3b83ae54a00e71e340d3914"
+    "${caelestia-dots}/hypr/utils/functions.lua";
+  cryoforgeFunctionsLua = pkgs.writeText "caelestia-cryoforge-functions.lua"
+    (replaceExactly "functions.lua PiP monitor ownership"
+      ''local function move_actions(win)
+    local screen = hl.get_active_monitor()
+''
+      ''local function move_actions(win)
+    local screen = win and win.monitor or nil
+''
+      pristineFunctionsLua);
 
   upstreamHyprlandFiles = [
     "hyprland/animations.lua"
@@ -394,9 +716,12 @@ let
       source = "${caelestia-dots}/hypr/${relativePath}";
     }) upstreamHyprlandFiles;
   cryoforgeHyprlandOverrides = {
+    "hypr/hyprland/animations.lua" = cryoforgeAnimationsLua;
+    "hypr/hyprland/decoration.lua" = cryoforgeDecorationLua;
     "hypr/hyprland/gestures.lua" = cryoforgeGesturesLua;
     "hypr/hyprland/keybinds.lua" = cryoforgeKeybindsLua;
     "hypr/hyprland/rules.lua" = cryoforgeRulesLua;
+    "hypr/utils/functions.lua" = cryoforgeFunctionsLua;
     "hypr/variables.lua" = cryoforgeVariablesLua;
   };
   cryoforgeHyprlandConfigFiles = map (entry:
