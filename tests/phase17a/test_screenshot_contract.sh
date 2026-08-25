@@ -12,11 +12,93 @@ test -r "$region_script"
 test -r "$keybinds"
 test -d "$caelestia_cli"
 
+# Verify ownership structurally using brace depth. The screenshot helper must
+# be a direct member of the outer LazyLoader identified as root, never a
+# member of Variants, its delegate, or another nested object.
+scope_count=0
+root_loader_count=0
+root_id_count=0
+variants_count=0
+open_region_count=0
+direct_open_region_count=0
+nested_open_region_count=0
+root_body_depth=-1
+depth=0
+
+while IFS= read -r line || [[ -n "$line" ]]; do
+    line_depth=$depth
+
+    if [[ "$line" =~ ^[[:space:]]*Scope[[:space:]]*[\{][[:space:]]*$ ]] \
+        && [[ "$line_depth" -eq 0 ]]; then
+        scope_count=$((scope_count + 1))
+    fi
+
+    if [[ "$line" =~ ^[[:space:]]*LazyLoader[[:space:]]*[\{][[:space:]]*$ ]] \
+        && [[ "$line_depth" -eq 1 ]]; then
+        root_loader_count=$((root_loader_count + 1))
+        root_body_depth=$((line_depth + 1))
+    fi
+
+    if [[ "$line" =~ ^[[:space:]]*id:[[:space:]]*root[[:space:]]*$ ]] \
+        && [[ "$line_depth" -eq "$root_body_depth" ]]; then
+        root_id_count=$((root_id_count + 1))
+    fi
+
+    if [[ "$line" =~ ^[[:space:]]*Variants[[:space:]]*[\{][[:space:]]*$ ]] \
+        && [[ "$line_depth" -eq "$root_body_depth" ]]; then
+        variants_count=$((variants_count + 1))
+    fi
+
+    if [[ "$line" =~ ^[[:space:]]*function[[:space:]]+openRegion[\(][\)][[:space:]]*:[[:space:]]*void[[:space:]]*[\{][[:space:]]*$ ]]; then
+        open_region_count=$((open_region_count + 1))
+        if [[ "$line_depth" -eq "$root_body_depth" ]]; then
+            direct_open_region_count=$((direct_open_region_count + 1))
+        else
+            nested_open_region_count=$((nested_open_region_count + 1))
+        fi
+    fi
+
+    for ((index = 0; index < ${#line}; index++)); do
+        case "${line:index:1}" in
+        "{")
+            depth=$((depth + 1))
+            ;;
+        "}")
+            depth=$((depth - 1))
+            ;;
+        esac
+        test "$depth" -ge 0
+    done
+done < "$area_picker"
+
+test "$depth" -eq 0
+test "$scope_count" -eq 1
+test "$root_loader_count" -eq 1
+test "$root_id_count" -eq 1
+test "$variants_count" -eq 1
+test "$open_region_count" -eq 1
+test "$direct_open_region_count" -eq 1
+test "$nested_open_region_count" -eq 0
+
+# Reject the exact zero-context regression shape as a supplemental assertion:
+# no helper function may appear between the Variants opening and its model.
+variants_prefix=$(sed -n '/^        Variants {$/,/^            model: Screens.screens$/p' "$area_picker")
+! printf '%s\n' "$variants_prefix" | grep -Fq 'function openRegion'
+
 test "$(grep -Fxc 'create_bind(vars.kbScreenshot, hl.dsp.global("caelestia:screenshot"), locked)' "$keybinds")" -eq 1
 test "$(grep -Fxc 'create_bind(vars.kbScreenshotRegion, hl.dsp.global("caelestia:screenshot"))' "$keybinds")" -eq 1
 ! grep -Fq 'create_bind(vars.kbScreenshot, hl.dsp.exec_cmd("caelestia screenshot"), locked)' "$keybinds"
-grep -E -q 'Quickshell\.execDetached\(\["/nix/store/.+-caelestia-screenshot-region/bin/caelestia-screenshot-region"\]\);' \
-    "$area_picker"
+
+region_helper=$(grep -oE \
+    '/nix/store/[^"[:space:]]+-caelestia-screenshot-region/bin/caelestia-screenshot-region' \
+    "$area_picker")
+test "$(printf '%s\n' "$region_helper" | grep -c .)" -eq 1
+test -x "$region_helper"
+
+open_region_block=$(sed -n '/^        function openRegion(): void {$/,/^        }$/p' "$area_picker")
+test "$(printf '%s\n' "$open_region_block" | wc -l)" -eq 3
+printf '%s\n' "$open_region_block" \
+    | grep -Fqx "            Quickshell.execDetached([\"$region_helper\"]);"
 
 open_block=$(sed -n '/function open(): void {/,/^        }/p' "$area_picker")
 test "$open_block" = $'        function open(): void {\n            root.openRegion();\n        }'
@@ -27,6 +109,7 @@ printf '%s\n' "$freeze_block" | grep -Fq 'root.activeAsync = true;'
 
 screenshot_block=$(sed -n '/name: "screenshot"/,/^    }/p' "$area_picker")
 printf '%s\n' "$screenshot_block" | grep -Fq 'root.openRegion();'
+test "$(grep -Fxc '            root.openRegion();' "$area_picker")" -eq 2
 
 cli_screenshot=$(find "$caelestia_cli/lib" \
     -path '*/site-packages/caelestia/subcommands/screenshot.py' \

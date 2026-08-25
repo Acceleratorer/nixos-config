@@ -244,7 +244,7 @@ grep -Fq 'replaceExactly "gestures.lua special-workspace actions" gesturesSpecia
 test "$(sha256sum "$special_patch" | cut -d ' ' -f 1)" = \
   738cc7cccca63d09cedc88889f6a5374111cd015d2f76a560c9f9180265d927d
 test "$(sha256sum "$region_patch" | cut -d ' ' -f 1)" = \
-  b9de91b11175a319b4cee5e125656692afb9f22fc502d7da465ef2dde11ab3f0
+  6db4facdd61b639abca962b147b9e4a1bd6bb3a849a24a9a12440decb483fc83
 test "$(sha256sum "$region_script" | cut -d ' ' -f 1)" = \
   b5ce59848a0750dc94f68baf2ebce15f72c727315c6e7d79fca5fb5c2cd2d495
 test "$(sha256sum "$gallery_patch" | cut -d ' ' -f 1)" = \
