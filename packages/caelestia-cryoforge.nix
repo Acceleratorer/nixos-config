@@ -2,8 +2,14 @@
   caelestiaChisaPool,
   caelestia-shell,
   coreutils,
+  grim,
   lib,
+  libnotify,
+  slurp,
   stdenv,
+  swappy,
+  wl-clipboard,
+  writeShellApplication,
 }:
 
 let
@@ -19,6 +25,20 @@ let
   chisaPresetManifest = ../desktop/caelestia/chisa-pool/ChisaPresets.qml;
   chisaPresetWallpapers = ../desktop/caelestia/chisa-pool/ChisaPresetWallpapers.qml;
   chisaPresetGallery = ../desktop/caelestia/chisa-pool/ChisaPresetGallery.qml;
+  regionScreenshotPatch = ../desktop/caelestia/cryoforge-region-screenshot.patch;
+  regionScreenshotScript = ../desktop/caelestia/screenshot-region.sh;
+  regionScreenshotCommand = writeShellApplication {
+    name = "caelestia-screenshot-region";
+    runtimeInputs = [
+      coreutils
+      grim
+      libnotify
+      slurp
+      swappy
+      wl-clipboard
+    ];
+    text = builtins.readFile regionScreenshotScript;
+  };
   upstreamPackage = caelestia-shell.packages.${system}.with-cli;
 
   guardedSource =
@@ -40,6 +60,10 @@ let
       == "1975baaa613da28cabd65a685ea0884682b475fd161d92d11cbee03ba7fbd159"
     ) "Refusing to replace changed upstream CachingImage.qml";
     assert lib.assertMsg (
+      builtins.hashFile "sha256" "${caelestia-shell}/modules/areapicker/AreaPicker.qml"
+      == "ca086c67278d3675ac8150785ecadd1a7771f8260880386fcef5a2eb73c63648"
+    ) "Refusing to patch changed upstream AreaPicker.qml";
+    assert lib.assertMsg (
       builtins.hashFile "sha256" "${caelestia-shell}/modules/bar/components/workspaces/Workspaces.qml"
       == "6629c0e665cca1adcedb116e1b114162ef8da07b6cc27c6975d5b31f3a9c43e5"
     ) "Refusing to transform changed upstream Workspaces.qml";
@@ -55,8 +79,16 @@ upstreamPackage.overrideAttrs (old: {
   patches = (old.patches or [ ]) ++ [
     ../desktop/caelestia/cryoforge-special-workspaces.patch
     chisaPresetPatch
+    regionScreenshotPatch
   ];
   patchFlags = (old.patchFlags or [ "-p1" ]) ++ [ "--fuzz=0" ];
+
+  postPatch = (old.postPatch or "") + ''
+    substituteInPlace modules/areapicker/AreaPicker.qml \
+      --replace-fail '@SCREENSHOT_REGION_COMMAND@' \
+      '${regionScreenshotCommand}/bin/caelestia-screenshot-region'
+    rm -f modules/areapicker/AreaPicker.qml.orig
+  '';
 
   postInstall = (old.postInstall or "") + ''
     ${coreutils}/bin/install -m 0444 \

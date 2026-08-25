@@ -1,0 +1,24 @@
+diff --git a/modules/areapicker/AreaPicker.qml b/modules/areapicker/AreaPicker.qml
+index 6718878..5933e4c 100644
+--- a/modules/areapicker/AreaPicker.qml
++++ b/modules/areapicker/AreaPicker.qml
+@@ -18,1 +18,5 @@ Scope {
++        function openRegion(): void {
++            Quickshell.execDetached(["@SCREENSHOT_REGION_COMMAND@"]);
++        }
++
+         Variants {
+@@ -55,5 +55,2 @@ Scope {
+-            root.freeze = false;
+-            root.closing = false;
+-            root.clipboardOnly = false;
+-            root.activeAsync = true;
++            root.openRegion();
+         }
+@@ -88,5 +88,2 @@ Scope {
+-            root.freeze = false;
+-            root.closing = false;
+-            root.clipboardOnly = false;
+-            root.activeAsync = true;
++            root.openRegion();
+         }
