@@ -11,6 +11,11 @@ let
   cfg = config.nixosCryoforge;
   system = pkgs.stdenv.hostPlatform.system;
   chisaPoolAssets = pkgs.callPackage ../packages/caelestia-chisa-pool.nix { };
+  neutralPalette = import ./palette.nix;
+  neutralKittyConfig = pkgs.writeText "cryoforge-neutral-kitty.conf"
+    (import ./apps/kitty.nix { palette = neutralPalette; });
+  neutralFastfetchConfig = pkgs.writeText "cryoforge-neutral-fastfetch.jsonc"
+    (builtins.toJSON (import ./apps/fastfetch.nix { palette = neutralPalette; }) + "\n");
 
   hyprlandTarget = "hyprland-session.target";
   classicTarget = "nixos-cryoforge-classic.target";
@@ -841,6 +846,20 @@ let
       seed_file ${stockHyprUser} "$caelestia_dir/hypr-user.lua"
     fi
 
+    ${lib.optionalString isCryoforge ''
+      # Phase 16C: fixed neutral app defaults. Existing user files win.
+      kitty_dir="$config_home/kitty"
+      if ensure_directory "$kitty_dir"; then
+        seed_file ${neutralKittyConfig} "$kitty_dir/kitty.conf"
+      fi
+
+      fastfetch_dir="$config_home/fastfetch"
+      if ensure_directory "$fastfetch_dir"; then
+        seed_file ${neutralFastfetchConfig} "$fastfetch_dir/config.jsonc"
+      fi
+      # End Phase 16C neutral app defaults.
+    ''}
+
     hypr_dir="$config_home/hypr"
     if ensure_directory "$hypr_dir" && ensure_directory "$hypr_dir/scheme"; then
       seed_file ${upstreamSchemeDefault} "$hypr_dir/scheme/current.lua"
@@ -958,8 +977,8 @@ in
     palette = lib.mkOption {
       type = lib.types.attrsOf lib.types.str;
       readOnly = true;
-      default = import ./palette.nix;
-      description = "CryoForge palette tokens, not consumed by desktop components yet.";
+      default = neutralPalette;
+      description = "Fixed wallpaper-independent CryoForge application palette tokens.";
     };
   };
 

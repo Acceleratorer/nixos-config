@@ -123,6 +123,18 @@
       stockSystem = mkNixos {
         desktopProfile = "caelestia-stock";
       };
+      activationSeedScript = systemConfig:
+        let
+          activation =
+            systemConfig.config.home-manager.users.accelra.home.activation
+              .initialiseCaelestiaShellConfig.data;
+        in
+        assert nixpkgs.lib.hasPrefix "run " activation;
+        nixpkgs.lib.removeSuffix "\n" (
+          nixpkgs.lib.removePrefix "run " activation
+        );
+      targetSeedScript = activationSeedScript realGreeterSystem;
+      stockSeedScript = activationSeedScript stockSystem;
     in {
     packages.${system} = {
       caelestia-chisa-pool = caelestiaChisaPool;
@@ -265,6 +277,116 @@
             ${./desktop/caelestia/screenshot-region.sh} \
             ${./desktop/caelestia/cryoforge-chisa-preset-gallery.patch} \
             ${./packages/caelestia-cryoforge.nix}
+          touch "$out"
+        '';
+
+      phase16c-base-app-integration-contract =
+        let
+          targetHome = realGreeterSystem.config.home-manager.users.accelra;
+          cryoforgeHome = cryoforgeSystem.config.home-manager.users.accelra;
+          expectedUserServices = [
+            "caelestia"
+            "caelestia-clipboard-image"
+            "caelestia-clipboard-text"
+            "caelestia-mpris-proxy"
+            "caelestia-trash-cleanup"
+            "hypridle"
+            "hyprpaper"
+            "mako"
+            "nixos-cryoforge-caelestia-fallback"
+            "swayosd"
+            "waybar"
+          ];
+          expectedActivations = [
+            "checkFilesChanged"
+            "checkLinkTargets"
+            "dconfSettings"
+            "initialiseCaelestiaShellConfig"
+            "initialiseChisaPoolTheme"
+            "installPackages"
+            "linkGeneration"
+            "migrateLegacyCaelestiaStockHyprDirectory"
+            "onFilesChange"
+            "reloadSystemd"
+            "writeBoundary"
+          ];
+        in
+        assert targetHome.nixosCryoforge.palette == import ./desktop/palette.nix;
+        assert
+          targetHome.home.activation.initialiseCaelestiaShellConfig.data
+          == cryoforgeHome.home.activation.initialiseCaelestiaShellConfig.data;
+        assert !(builtins.hasAttr "kitty/kitty.conf" targetHome.xdg.configFile);
+        assert !(builtins.hasAttr "fastfetch/config.jsonc" targetHome.xdg.configFile);
+        assert builtins.attrNames targetHome.systemd.user.services == expectedUserServices;
+        assert builtins.attrNames targetHome.home.activation == expectedActivations;
+        assert realGreeterSystem.config.programs.regreet.enable;
+        assert realGreeterSystem.config.programs.regreet.package == recoveryGreeter;
+        assert realGreeterSystem.config.services.greetd.settings.default_session.user == "greeter";
+        assert realGreeterSystem.config.services.greetd.restart;
+        assert realGreeterSystem.config.systemd.services.greetd.restartIfChanged;
+        assert !realGreeterSystem.config.systemd.services.greetd.stopIfChanged;
+        assert realGreeterSystem.config.security.pam.services ? hyprlock;
+        assert realGreeterSystem.config.boot.plymouth.enable;
+        assert realGreeterSystem.config.boot.plymouth.theme == "bgrt";
+        assert !realGreeterSystem.config.boot.initrd.verbose;
+        assert realGreeterSystem.config.boot.consoleLogLevel == 3;
+        assert nixpkgs.lib.all
+          (param: builtins.elem param realGreeterSystem.config.boot.kernelParams)
+          [
+            "quiet"
+            "loglevel=3"
+            "udev.log_level=3"
+            "rd.udev.log_level=3"
+            "systemd.show_status=auto"
+            "rd.systemd.show_status=auto"
+            "vt.global_cursor_default=0"
+            "splash"
+          ];
+        pkgs.runCommand "phase16c-base-app-integration-contract-tests" {
+          nativeBuildInputs = [
+            pkgs.bash
+            pkgs.coreutils
+            pkgs.fastfetch
+            pkgs.findutils
+            pkgs.gnugrep
+            pkgs.gnused
+            pkgs.kitty
+            pkgs.python3
+          ];
+        } ''
+          bash ${./tests/phase16c/test_base_app_integration_contract.sh} \
+            ${./desktop/palette.nix} \
+            ${./desktop/apps/kitty.nix} \
+            ${./desktop/apps/fastfetch.nix} \
+            ${targetSeedScript} \
+            ${stockSeedScript} \
+            ${./desktop/profiles.nix} \
+            ${./flake.nix} \
+            ${./flake.lock} \
+            ${./home.nix} \
+            ${./configuration.nix} \
+            ${./desktop-hyprland.nix} \
+            ${./desktop/caelestia/chisa-pool} \
+            ${./desktop/caelestia/real-greeter} \
+            ${./desktop/regreet} \
+            ${./desktop/hypr} \
+            ${./packages/caelestia-cryoforge.nix} \
+            ${./packages/caelestia-real-greeter.nix} \
+            ${./packages/caelestia-real-lock.nix} \
+            ${./desktop/caelestia/real-greeter-system.nix} \
+            ${./desktop/caelestia/cryoforge-chisa-preset-gallery.patch} \
+            ${./desktop/caelestia/cryoforge-special-workspaces.patch} \
+            ${./desktop/caelestia/cryoforge-region-screenshot.patch} \
+            ${./desktop/caelestia/screenshot-region.sh} \
+            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/variables.lua".source} \
+            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/general.lua".source} \
+            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/decoration.lua".source} \
+            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/animations.lua".source} \
+            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/rules.lua".source} \
+            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/execs.lua".source} \
+            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/utils/functions.lua".source} \
+            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/keybinds.lua".source} \
+            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/gestures.lua".source}
           touch "$out"
         '';
 
