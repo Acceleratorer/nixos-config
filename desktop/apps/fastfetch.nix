@@ -3,7 +3,7 @@
 {
   logo = {
     type = "builtin";
-    source = "NixOS_small";
+    source = "NixOS";
   };
 
   display = {
@@ -23,7 +23,7 @@
   modules = [
     {
       type = "title";
-      format = "{user-name}@{host-name}";
+      format = "CryoForge // {user-name}@{host-name}";
     }
     {
       type = "os";
@@ -46,6 +46,9 @@
       key = "Packages";
     }
     {
+      type = "break";
+    }
+    {
       type = "shell";
       key = "Shell";
     }
@@ -56,6 +59,9 @@
     {
       type = "wm";
       key = "Desktop";
+    }
+    {
+      type = "break";
     }
     {
       type = "cpu";
