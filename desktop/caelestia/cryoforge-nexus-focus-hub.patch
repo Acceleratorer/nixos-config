@@ -1,0 +1,29 @@
+diff --git a/modules/nexus/PageRegistry.qml b/modules/nexus/PageRegistry.qml
+--- a/modules/nexus/PageRegistry.qml
++++ b/modules/nexus/PageRegistry.qml
+@@ -8,4 +8,12 @@ QtObject {
+     readonly property list<var> pages: [
++        // Focus
++        {
++            label: qsTr("Focus Hub"),
++            icon: "dashboard",
++            description: qsTr("Live window and workspace overview"),
++            category: "system"
++        },
++
+         // Appearance
+         {
+             label: qsTr("Wallpaper & style"),
+diff --git a/modules/nexus/PageCompRegistry.qml b/modules/nexus/PageCompRegistry.qml
+--- a/modules/nexus/PageCompRegistry.qml
++++ b/modules/nexus/PageCompRegistry.qml
+@@ -22,4 +22,9 @@ QtObject {
+     readonly property list<Component> pageComps: [
++        // Focus
++        Component {
++            FocusHubPage {}
++        },
++
+         // Appearance
+         Component {
+             // Wallpaper & style

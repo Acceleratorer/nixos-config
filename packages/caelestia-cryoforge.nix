@@ -16,6 +16,13 @@ let
   system = stdenv.hostPlatform.system;
   chisaPoolCachingImage = ../desktop/caelestia/chisa-pool/CachingImage.qml;
   chisaPoolCachingImageSha256 = "bc6c1658f0f2748ae96970b07f0e20aa86baf1dd07437e5a7726d0cddc0e9419";
+  nexusFocusHubPage = ../desktop/caelestia/nexus/FocusHubPage.qml;
+  nexusFocusHubPatch = ../desktop/caelestia/cryoforge-nexus-focus-hub.patch;
+  nexusFocusHubPatchSha256 = "9084c0012ceff1a635c2fad4443e09b0470e6fc96205bc8a25d13c6ec055b287";
+  nexusFocusHubSourceHashes = {
+    "modules/nexus/PageRegistry.qml" = "d257afbcc7f67b2206892b0fe209b5485ff9db46483d48d8bc5b25a81200c032";
+    "modules/nexus/PageCompRegistry.qml" = "97e55e31cd177cb63fd3d494343b93bd427a53a82c8e3f87401fcdaf6a469e91";
+  };
   chisaPresetPatch = ../desktop/caelestia/cryoforge-chisa-preset-gallery.patch;
   chisaPresetPatchSha256 = "0b73f3dc7fd093e4d5b167079c2a8f80fcf08e6791cb4855e55bbe983ccaf877";
   chisaPresetSourceHashes = {
@@ -42,6 +49,15 @@ let
   upstreamPackage = caelestia-shell.packages.${system}.with-cli;
 
   guardedSource =
+    assert lib.assertMsg (
+      builtins.hashFile "sha256" nexusFocusHubPatch == nexusFocusHubPatchSha256
+    ) "CryoForge Nexus Focus Hub patch checksum mismatch";
+    assert lib.assertMsg (
+      lib.all (
+        path:
+        builtins.hashFile "sha256" "${caelestia-shell}/${path}" == nexusFocusHubSourceHashes.${path}
+      ) (builtins.attrNames nexusFocusHubSourceHashes)
+    ) "Refusing to apply the Nexus Focus Hub patch to changed upstream QML";
     assert lib.assertMsg (
       builtins.hashFile "sha256" chisaPresetPatch == chisaPresetPatchSha256
     ) "CryoForge Chisa preset gallery patch checksum mismatch";
@@ -80,6 +96,7 @@ upstreamPackage.overrideAttrs (old: {
     ../desktop/caelestia/cryoforge-special-workspaces.patch
     chisaPresetPatch
     regionScreenshotPatch
+    nexusFocusHubPatch
   ];
   patchFlags = (old.patchFlags or [ "-p1" ]) ++ [ "--fuzz=0" ];
 
@@ -115,5 +132,8 @@ upstreamPackage.overrideAttrs (old: {
     ${coreutils}/bin/install -m 0444 \
       ${chisaPoolCachingImage} \
       "$out/share/caelestia-shell/components/images/CachingImage.qml"
+    ${coreutils}/bin/install -m 0444 \
+      ${nexusFocusHubPage} \
+      "$out/share/caelestia-shell/modules/nexus/pages/FocusHubPage.qml"
   '';
 })

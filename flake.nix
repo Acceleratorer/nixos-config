@@ -135,6 +135,22 @@
         );
       targetSeedScript = activationSeedScript realGreeterSystem;
       stockSeedScript = activationSeedScript stockSystem;
+      phase16dBaseCryoforgePackage =
+        builtins.toFile "caelestia-cryoforge-phase16d-base.nix" (
+          builtins.replaceStrings
+            [
+              "  nexusFocusHubPage = ../desktop/caelestia/nexus/FocusHubPage.qml;\n"
+              "  nexusFocusHubPatch = ../desktop/caelestia/cryoforge-nexus-focus-hub.patch;\n"
+              "  nexusFocusHubPatchSha256 = \"9084c0012ceff1a635c2fad4443e09b0470e6fc96205bc8a25d13c6ec055b287\";\n"
+              "  nexusFocusHubSourceHashes = {\n    \"modules/nexus/PageRegistry.qml\" = \"d257afbcc7f67b2206892b0fe209b5485ff9db46483d48d8bc5b25a81200c032\";\n    \"modules/nexus/PageCompRegistry.qml\" = \"97e55e31cd177cb63fd3d494343b93bd427a53a82c8e3f87401fcdaf6a469e91\";\n  };\n"
+              "    assert lib.assertMsg (\n      builtins.hashFile \"sha256\" nexusFocusHubPatch == nexusFocusHubPatchSha256\n    ) \"CryoForge Nexus Focus Hub patch checksum mismatch\";\n"
+              "    assert lib.assertMsg (\n      lib.all (\n        path:\n        builtins.hashFile \"sha256\" \"\${caelestia-shell}/\${path}\" == nexusFocusHubSourceHashes.\${path}\n      ) (builtins.attrNames nexusFocusHubSourceHashes)\n    ) \"Refusing to apply the Nexus Focus Hub patch to changed upstream QML\";\n"
+              "    nexusFocusHubPatch\n"
+              "    \${coreutils}/bin/install -m 0444 \\\n      \${nexusFocusHubPage} \\\n      \"\$out/share/caelestia-shell/modules/nexus/pages/FocusHubPage.qml\"\n"
+            ]
+            (builtins.genList (_: "") 8)
+            (builtins.readFile ./packages/caelestia-cryoforge.nix)
+        );
     in {
     packages.${system} = {
       caelestia-chisa-pool = caelestiaChisaPool;
@@ -276,7 +292,7 @@
             ${./desktop/caelestia/cryoforge-region-screenshot.patch} \
             ${./desktop/caelestia/screenshot-region.sh} \
             ${./desktop/caelestia/cryoforge-chisa-preset-gallery.patch} \
-            ${./packages/caelestia-cryoforge.nix}
+            ${phase16dBaseCryoforgePackage}
           touch "$out"
         '';
 
@@ -370,7 +386,7 @@
             ${./desktop/caelestia/real-greeter} \
             ${./desktop/regreet} \
             ${./desktop/hypr} \
-            ${./packages/caelestia-cryoforge.nix} \
+            ${phase16dBaseCryoforgePackage} \
             ${./packages/caelestia-real-greeter.nix} \
             ${./packages/caelestia-real-lock.nix} \
             ${./desktop/caelestia/real-greeter-system.nix} \
@@ -387,6 +403,30 @@
             ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/utils/functions.lua".source} \
             ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/keybinds.lua".source} \
             ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/gestures.lua".source}
+          touch "$out"
+        '';
+
+      phase16d-nexus-focus-hub-contract = pkgs.runCommand "phase16d-nexus-focus-hub-contract-tests" {
+          nativeBuildInputs = [
+            pkgs.bash
+            pkgs.coreutils
+            pkgs.findutils
+            pkgs.gnugrep
+            pkgs.gnused
+            pkgs.patch
+            pkgs.qt6.qtdeclarative
+          ];
+        } ''
+          bash ${./tests/phase16d/test_nexus_focus_hub_contract.sh} \
+            ${realGreeterSystem.config.home-manager.users.accelra.programs.caelestia.package}/share/caelestia-shell \
+            ${caelestia-shell} \
+            ${./packages/caelestia-cryoforge.nix} \
+            ${./desktop/caelestia/cryoforge-nexus-focus-hub.patch} \
+            ${./desktop/caelestia/nexus/FocusHubPage.qml} \
+            ${./flake.nix} \
+            ${./flake.lock} \
+            ${./.} \
+            ${realGreeterSystem.config.system.build.toplevel}
           touch "$out"
         '';
 
