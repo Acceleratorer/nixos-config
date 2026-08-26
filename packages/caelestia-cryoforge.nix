@@ -23,6 +23,16 @@ let
     "modules/nexus/PageRegistry.qml" = "d257afbcc7f67b2206892b0fe209b5485ff9db46483d48d8bc5b25a81200c032";
     "modules/nexus/PageCompRegistry.qml" = "97e55e31cd177cb63fd3d494343b93bd427a53a82c8e3f87401fcdaf6a469e91";
   };
+  nexusMediaWorkspacePage = ../desktop/caelestia/nexus/MediaWorkspacePage.qml;
+  nexusMediaWorkspacePageSha256 = "0f9e92d8a59e6504a0ec4588b767f4f312e9e88774aed4c87e3c8520c9214303";
+  nexusMediaWorkspacePatch = ../desktop/caelestia/cryoforge-nexus-media-workspace.patch;
+  nexusMediaWorkspacePatchSha256 = "2fb9bd5d7074705c7c9cf9dc20263abe52bc23c362e9885ab0fe5ed799db0cdd";
+  nexusMediaWorkspaceSourceHashes = {
+    "modules/nexus/PageRegistry.qml" = "d257afbcc7f67b2206892b0fe209b5485ff9db46483d48d8bc5b25a81200c032";
+    "modules/nexus/PageCompRegistry.qml" = "97e55e31cd177cb63fd3d494343b93bd427a53a82c8e3f87401fcdaf6a469e91";
+    "services/Players.qml" = "935e8e35f27d314f9222de9abacad43003f362a56a74f6acf616989e46a60d97";
+    "components/widgets/CoverArt.qml" = "373542849aa3a57f66e626357054453460bea101df34a7b5cafeecb30298e791";
+  };
   chisaPresetPatch = ../desktop/caelestia/cryoforge-chisa-preset-gallery.patch;
   chisaPresetPatchSha256 = "0b73f3dc7fd093e4d5b167079c2a8f80fcf08e6791cb4855e55bbe983ccaf877";
   chisaPresetSourceHashes = {
@@ -58,6 +68,18 @@ let
         builtins.hashFile "sha256" "${caelestia-shell}/${path}" == nexusFocusHubSourceHashes.${path}
       ) (builtins.attrNames nexusFocusHubSourceHashes)
     ) "Refusing to apply the Nexus Focus Hub patch to changed upstream QML";
+    assert lib.assertMsg (
+      builtins.hashFile "sha256" nexusMediaWorkspacePage == nexusMediaWorkspacePageSha256
+    ) "CryoForge Nexus Media Workspace page checksum mismatch";
+    assert lib.assertMsg (
+      builtins.hashFile "sha256" nexusMediaWorkspacePatch == nexusMediaWorkspacePatchSha256
+    ) "CryoForge Nexus Media Workspace patch checksum mismatch";
+    assert lib.assertMsg (
+      lib.all (
+        path:
+        builtins.hashFile "sha256" "${caelestia-shell}/${path}" == nexusMediaWorkspaceSourceHashes.${path}
+      ) (builtins.attrNames nexusMediaWorkspaceSourceHashes)
+    ) "Refusing to apply the Nexus Media Workspace patch to changed upstream QML";
     assert lib.assertMsg (
       builtins.hashFile "sha256" chisaPresetPatch == chisaPresetPatchSha256
     ) "CryoForge Chisa preset gallery patch checksum mismatch";
@@ -97,6 +119,7 @@ upstreamPackage.overrideAttrs (old: {
     chisaPresetPatch
     regionScreenshotPatch
     nexusFocusHubPatch
+    nexusMediaWorkspacePatch
   ];
   patchFlags = (old.patchFlags or [ "-p1" ]) ++ [ "--fuzz=0" ];
 
@@ -135,5 +158,8 @@ upstreamPackage.overrideAttrs (old: {
     ${coreutils}/bin/install -m 0444 \
       ${nexusFocusHubPage} \
       "$out/share/caelestia-shell/modules/nexus/pages/FocusHubPage.qml"
+    ${coreutils}/bin/install -m 0444 \
+      ${nexusMediaWorkspacePage} \
+      "$out/share/caelestia-shell/modules/nexus/pages/MediaWorkspacePage.qml"
   '';
 })

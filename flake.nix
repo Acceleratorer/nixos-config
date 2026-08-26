@@ -135,22 +135,72 @@
         );
       targetSeedScript = activationSeedScript realGreeterSystem;
       stockSeedScript = activationSeedScript stockSystem;
-      phase16dBaseCryoforgePackage =
-        builtins.toFile "caelestia-cryoforge-phase16d-base.nix" (
+      replaceExactly = label: needle: replacement: value:
+        let
+          parts = nixpkgs.lib.splitString needle value;
+        in
+        assert nixpkgs.lib.assertMsg (
+          builtins.length parts == 2
+        ) "${label} must match exactly once";
+        nixpkgs.lib.concatStringsSep replacement parts;
+      removeExactSnippets = phase: snippets: value:
+        nixpkgs.lib.foldl'
+          (current: snippet:
+            replaceExactly "${phase} package projection" snippet "" current
+          )
+          value
+          snippets;
+      cryoforgePackageSource =
+        builtins.readFile ./packages/caelestia-cryoforge.nix;
+      phase16ePackageSnippets = [
+        "  nexusMediaWorkspacePage = ../desktop/caelestia/nexus/MediaWorkspacePage.qml;\n  nexusMediaWorkspacePageSha256 = \"0f9e92d8a59e6504a0ec4588b767f4f312e9e88774aed4c87e3c8520c9214303\";\n  nexusMediaWorkspacePatch = ../desktop/caelestia/cryoforge-nexus-media-workspace.patch;\n  nexusMediaWorkspacePatchSha256 = \"2fb9bd5d7074705c7c9cf9dc20263abe52bc23c362e9885ab0fe5ed799db0cdd\";\n  nexusMediaWorkspaceSourceHashes = {\n    \"modules/nexus/PageRegistry.qml\" = \"d257afbcc7f67b2206892b0fe209b5485ff9db46483d48d8bc5b25a81200c032\";\n    \"modules/nexus/PageCompRegistry.qml\" = \"97e55e31cd177cb63fd3d494343b93bd427a53a82c8e3f87401fcdaf6a469e91\";\n    \"services/Players.qml\" = \"935e8e35f27d314f9222de9abacad43003f362a56a74f6acf616989e46a60d97\";\n    \"components/widgets/CoverArt.qml\" = \"373542849aa3a57f66e626357054453460bea101df34a7b5cafeecb30298e791\";\n  };\n"
+        "    assert lib.assertMsg (\n      builtins.hashFile \"sha256\" nexusMediaWorkspacePage == nexusMediaWorkspacePageSha256\n    ) \"CryoForge Nexus Media Workspace page checksum mismatch\";\n    assert lib.assertMsg (\n      builtins.hashFile \"sha256\" nexusMediaWorkspacePatch == nexusMediaWorkspacePatchSha256\n    ) \"CryoForge Nexus Media Workspace patch checksum mismatch\";\n    assert lib.assertMsg (\n      lib.all (\n        path:\n        builtins.hashFile \"sha256\" \"\${caelestia-shell}/\${path}\" == nexusMediaWorkspaceSourceHashes.\${path}\n      ) (builtins.attrNames nexusMediaWorkspaceSourceHashes)\n    ) \"Refusing to apply the Nexus Media Workspace patch to changed upstream QML\";\n"
+        "    nexusMediaWorkspacePatch\n"
+        "    \${coreutils}/bin/install -m 0444 \\\n      \${nexusMediaWorkspacePage} \\\n      \"\$out/share/caelestia-shell/modules/nexus/pages/MediaWorkspacePage.qml\"\n"
+      ];
+      phase16dPackageSnippets = [
+        "  nexusFocusHubPage = ../desktop/caelestia/nexus/FocusHubPage.qml;\n"
+        "  nexusFocusHubPatch = ../desktop/caelestia/cryoforge-nexus-focus-hub.patch;\n"
+        "  nexusFocusHubPatchSha256 = \"9084c0012ceff1a635c2fad4443e09b0470e6fc96205bc8a25d13c6ec055b287\";\n"
+        "  nexusFocusHubSourceHashes = {\n    \"modules/nexus/PageRegistry.qml\" = \"d257afbcc7f67b2206892b0fe209b5485ff9db46483d48d8bc5b25a81200c032\";\n    \"modules/nexus/PageCompRegistry.qml\" = \"97e55e31cd177cb63fd3d494343b93bd427a53a82c8e3f87401fcdaf6a469e91\";\n  };\n"
+        "    assert lib.assertMsg (\n      builtins.hashFile \"sha256\" nexusFocusHubPatch == nexusFocusHubPatchSha256\n    ) \"CryoForge Nexus Focus Hub patch checksum mismatch\";\n"
+        "    assert lib.assertMsg (\n      lib.all (\n        path:\n        builtins.hashFile \"sha256\" \"\${caelestia-shell}/\${path}\" == nexusFocusHubSourceHashes.\${path}\n      ) (builtins.attrNames nexusFocusHubSourceHashes)\n    ) \"Refusing to apply the Nexus Focus Hub patch to changed upstream QML\";\n"
+        "    nexusFocusHubPatch\n"
+        "    \${coreutils}/bin/install -m 0444 \\\n      \${nexusFocusHubPage} \\\n      \"\$out/share/caelestia-shell/modules/nexus/pages/FocusHubPage.qml\"\n"
+      ];
+      phase16eBaseCryoforgePackageSourceText =
+        removeExactSnippets "Phase 16E" phase16ePackageSnippets cryoforgePackageSource;
+      phase16eBaseCryoforgePackage =
+        assert nixpkgs.lib.assertMsg (
+          nixpkgs.lib.hasInfix "nexusFocusHubPatch" phase16eBaseCryoforgePackageSourceText
+          && !(nixpkgs.lib.hasInfix "nexusMediaWorkspace" phase16eBaseCryoforgePackageSourceText)
+        ) "Pre-Phase-16E package projection removed content outside Phase 16E";
+        builtins.toFile "caelestia-cryoforge-phase16e-base.nix"
+          phase16eBaseCryoforgePackageSourceText;
+      phase16eBaseCryoforgeBuildPackage =
+        builtins.toFile "caelestia-cryoforge-phase16e-build.nix" (
           builtins.replaceStrings
-            [
-              "  nexusFocusHubPage = ../desktop/caelestia/nexus/FocusHubPage.qml;\n"
-              "  nexusFocusHubPatch = ../desktop/caelestia/cryoforge-nexus-focus-hub.patch;\n"
-              "  nexusFocusHubPatchSha256 = \"9084c0012ceff1a635c2fad4443e09b0470e6fc96205bc8a25d13c6ec055b287\";\n"
-              "  nexusFocusHubSourceHashes = {\n    \"modules/nexus/PageRegistry.qml\" = \"d257afbcc7f67b2206892b0fe209b5485ff9db46483d48d8bc5b25a81200c032\";\n    \"modules/nexus/PageCompRegistry.qml\" = \"97e55e31cd177cb63fd3d494343b93bd427a53a82c8e3f87401fcdaf6a469e91\";\n  };\n"
-              "    assert lib.assertMsg (\n      builtins.hashFile \"sha256\" nexusFocusHubPatch == nexusFocusHubPatchSha256\n    ) \"CryoForge Nexus Focus Hub patch checksum mismatch\";\n"
-              "    assert lib.assertMsg (\n      lib.all (\n        path:\n        builtins.hashFile \"sha256\" \"\${caelestia-shell}/\${path}\" == nexusFocusHubSourceHashes.\${path}\n      ) (builtins.attrNames nexusFocusHubSourceHashes)\n    ) \"Refusing to apply the Nexus Focus Hub patch to changed upstream QML\";\n"
-              "    nexusFocusHubPatch\n"
-              "    \${coreutils}/bin/install -m 0444 \\\n      \${nexusFocusHubPage} \\\n      \"\$out/share/caelestia-shell/modules/nexus/pages/FocusHubPage.qml\"\n"
-            ]
-            (builtins.genList (_: "") 8)
-            (builtins.readFile ./packages/caelestia-cryoforge.nix)
+            [ "../desktop/" ]
+            [ "${./desktop}/" ]
+            phase16eBaseCryoforgePackageSourceText
         );
+      caelestiaCryoforgePre16e =
+        pkgs.callPackage phase16eBaseCryoforgeBuildPackage {
+          inherit caelestia-shell;
+          caelestiaChisaPool = caelestiaChisaPool;
+        };
+      phase16dBaseCryoforgePackageSourceText =
+        removeExactSnippets
+          "Phase 16D"
+          phase16dPackageSnippets
+          phase16eBaseCryoforgePackageSourceText;
+      phase16dBaseCryoforgePackage =
+        assert nixpkgs.lib.assertMsg (
+          builtins.hashString "sha256" phase16dBaseCryoforgePackageSourceText
+          == "eba2358673c4b316464ed80c8aebef271fc7bf00dc421760a58509d1bea4d312"
+        ) "Pre-Phase-16D package projection changed historical package content";
+        builtins.toFile "caelestia-cryoforge-phase16d-base.nix"
+          phase16dBaseCryoforgePackageSourceText;
     in {
     packages.${system} = {
       caelestia-chisa-pool = caelestiaChisaPool;
@@ -407,6 +457,36 @@
         '';
 
       phase16d-nexus-focus-hub-contract = pkgs.runCommand "phase16d-nexus-focus-hub-contract-tests" {
+        nativeBuildInputs = [
+          pkgs.bash
+          pkgs.coreutils
+          pkgs.findutils
+          pkgs.gnugrep
+          pkgs.gnused
+          pkgs.patch
+          pkgs.qt6.qtdeclarative
+        ];
+      } ''
+        bash ${./tests/phase16d/test_nexus_focus_hub_contract.sh} \
+          ${caelestiaCryoforgePre16e}/share/caelestia-shell \
+          ${caelestia-shell} \
+          ${phase16eBaseCryoforgePackage} \
+          ${./desktop/caelestia/cryoforge-nexus-focus-hub.patch} \
+          ${./desktop/caelestia/nexus/FocusHubPage.qml} \
+          ${./flake.nix} \
+          ${./flake.lock} \
+          ${./.} \
+          ${realGreeterSystem.config.system.build.toplevel}
+        touch "$out"
+      '';
+
+      phase16e-nexus-media-workspace-contract =
+        let
+          targetName = "nixos-caelestia-cryoforge-real-greeter";
+          targetSystem = realGreeterSystem;
+        in
+        assert targetName == "nixos-caelestia-cryoforge-real-greeter";
+        pkgs.runCommand "phase16e-nexus-media-workspace-contract-tests" {
           nativeBuildInputs = [
             pkgs.bash
             pkgs.coreutils
@@ -414,19 +494,25 @@
             pkgs.gnugrep
             pkgs.gnused
             pkgs.patch
+            pkgs.python3
             pkgs.qt6.qtdeclarative
           ];
         } ''
-          bash ${./tests/phase16d/test_nexus_focus_hub_contract.sh} \
-            ${realGreeterSystem.config.home-manager.users.accelra.programs.caelestia.package}/share/caelestia-shell \
+          bash ${./tests/phase16e/test_nexus_media_workspace_contract.sh} \
+            ${targetSystem.config.home-manager.users.accelra.programs.caelestia.package}/share/caelestia-shell \
+            ${caelestiaCryoforgePre16e}/share/caelestia-shell \
             ${caelestia-shell} \
             ${./packages/caelestia-cryoforge.nix} \
+            ${phase16eBaseCryoforgePackage} \
+            ${phase16dBaseCryoforgePackage} \
+            ${./desktop/caelestia/cryoforge-nexus-media-workspace.patch} \
+            ${./desktop/caelestia/nexus/MediaWorkspacePage.qml} \
             ${./desktop/caelestia/cryoforge-nexus-focus-hub.patch} \
             ${./desktop/caelestia/nexus/FocusHubPage.qml} \
             ${./flake.nix} \
             ${./flake.lock} \
             ${./.} \
-            ${realGreeterSystem.config.system.build.toplevel}
+            ${targetSystem.config.system.build.toplevel}
           touch "$out"
         '';
 
