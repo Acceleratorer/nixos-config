@@ -1,0 +1,35 @@
+diff --git a/modules/nexus/PageRegistry.qml b/modules/nexus/PageRegistry.qml
+--- a/modules/nexus/PageRegistry.qml
++++ b/modules/nexus/PageRegistry.qml
+@@ -14,6 +14,14 @@
+             category: "system"
+         },
+-
++
++        // Media
++        {
++            label: qsTr("Media Workspace"),
++            icon: "music_note",
++            description: qsTr("Now playing and playback controls"),
++            category: "system"
++        },
++
+         // Appearance
+         {
+             label: qsTr("Wallpaper & style"),
+diff --git a/modules/nexus/PageCompRegistry.qml b/modules/nexus/PageCompRegistry.qml
+--- a/modules/nexus/PageCompRegistry.qml
++++ b/modules/nexus/PageCompRegistry.qml
+@@ -25,6 +25,11 @@
+             FocusHubPage {}
+         },
+-
++
++        // Media
++        Component {
++            MediaWorkspacePage {}
++        },
++
+         // Appearance
+         Component {
+             // Wallpaper & style
