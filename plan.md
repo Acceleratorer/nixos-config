@@ -9,8 +9,11 @@ the same context.
 
 - Repository: `https://github.com/Acceleratorer/nixos-config`
 - Authoritative checkout on NixOS: `/home/accelra/Github/nixos-config`
-- Current repository baseline: `main` at
+- Accepted code baseline before this plan was added: `main` at
   `8dc1fc3df2d77a5cc7fa01d29713c05f33b99ab6`
+- For future work, verify the live baseline with `git rev-parse origin/main`;
+  the hash above is a historical Phase 16E merge reference, not a permanent
+  expected `HEAD`.
 - Current build target:
   `nixos-caelestia-cryoforge-real-greeter`
 - Pinned Caelestia shell revision:
@@ -48,11 +51,11 @@ The normal delivery loop is:
 1. Define one narrowly scoped phase and its exact allowlist.
 2. Inspect the existing source, contracts, and pinned upstream APIs.
 3. Implement build-only.
-4. Run focused and protected offline checks.
-5. Review the rendered result visually when the phase changes UI.
-6. Test activation only after visual acceptance.
-7. Persist with `nixos-rebuild boot` only after runtime health is clean.
-8. Commit directly to `main`, verify the commit, and push `main`.
+4. Run focused and protected offline checks, then stop for review.
+5. After explicit approval, test activation and review the live result
+   visually when the phase changes UI.
+6. Persist with `nixos-rebuild boot` only after runtime health is clean.
+7. Commit directly to `main`, verify the commit, and push `main`.
 
 No phase may silently weaken an older contract. If a historical package hash
 or projection is affected, preserve the historical contract with a narrow
