@@ -225,7 +225,7 @@ kitty +runpy \
   'import sys; from kitty.config import load_config; bad = []; load_config(sys.argv[1], accumulate_bad_lines=bad); assert not bad, bad' \
   "$kitty_config"
 
-# Fastfetch stays declarative, label-driven, and uses a compact built-in logo.
+# Fastfetch stays declarative, label-driven, and uses the full built-in logo.
 python3 - "$fastfetch_config" <<'PY'
 import json
 import sys
@@ -233,7 +233,7 @@ import sys
 with open(sys.argv[1], encoding="utf-8") as handle:
     config = json.load(handle)
 
-assert config["logo"] == {"type": "builtin", "source": "NixOS_small"}
+assert config["logo"] == {"type": "builtin", "source": "NixOS"}
 assert config["display"]["brightColor"] is False
 assert config["display"]["separator"] == "  "
 assert config["display"]["key"]["width"] == 12
@@ -245,20 +245,58 @@ assert config["display"]["color"] == {
 }
 
 expected_modules = [
-    "title", "os", "host", "kernel", "uptime", "packages", "shell",
-    "terminal", "wm", "cpu", "gpu", "memory", "disk",
+    {"type": "title", "format": "CryoForge // {user-name}@{host-name}"},
+    {"type": "os", "key": "OS"},
+    {"type": "host", "key": "Host"},
+    {"type": "kernel", "key": "Kernel"},
+    {"type": "uptime", "key": "Uptime"},
+    {"type": "packages", "key": "Packages"},
+    {"type": "break"},
+    {"type": "shell", "key": "Shell"},
+    {"type": "terminal", "key": "Terminal"},
+    {"type": "wm", "key": "Desktop"},
+    {"type": "break"},
+    {"type": "cpu", "key": "CPU"},
+    {"type": "gpu", "key": "GPU"},
+    {"type": "memory", "key": "Memory"},
+    {"type": "disk", "key": "Storage", "folders": "/"},
 ]
-assert [module["type"] for module in config["modules"]] == expected_modules
-assert all(module["type"] != "command" for module in config["modules"])
-assert all(module.get("key") for module in config["modules"][1:])
+assert config["modules"] == expected_modules
+module_types = [module["type"] for module in config["modules"]]
+assert module_types == [
+    "title", "os", "host", "kernel", "uptime", "packages", "break",
+    "shell", "terminal", "wm", "break", "cpu", "gpu", "memory", "disk",
+]
+assert module_types.count("break") == 2
+assert module_types[6] == "break"
+assert module_types[10] == "break"
+prohibited_modules = {
+    "battery",
+    "colors",
+    "command",
+    "dns",
+    "icons",
+    "localip",
+    "netio",
+    "network",
+    "publicip",
+    "temperature",
+    "wifi",
+}
+assert not prohibited_modules.intersection(module_types)
 PY
 grep -Fq 'logo = {' "$fastfetch_adapter"
 grep -Fqx '    type = "builtin";' <(sed -n '/logo = {/,/^  };/p' "$fastfetch_adapter")
-grep -Fqx '    source = "NixOS_small";' <(sed -n '/logo = {/,/^  };/p' "$fastfetch_adapter")
+grep -Fqx '    source = "NixOS";' <(sed -n '/logo = {/,/^  };/p' "$fastfetch_adapter")
+grep -Fqx '      format = "CryoForge // {user-name}@{host-name}";' \
+  <(sed -n '/type = "title";/,/^    }/p' "$fastfetch_adapter")
 ! grep -E -i -q \
   'https?://|/nix/store/|\.(png|jpe?g|gif|svg|webp)(["'"'"']|$)' \
   "$fastfetch_adapter" "$fastfetch_config"
-fastfetch --config "$fastfetch_config" --pipe true --structure os >/dev/null
+! grep -E -i -q \
+  'asset|file-raw|image|converter|runtime|script|command' \
+  "$fastfetch_adapter" "$fastfetch_config"
+fastfetch --config "$fastfetch_config" --pipe true >/dev/null
 
 # The logo amendment adds no cursor asset or cursor route. Existing desktop
 # cursor ownership remains protected by the byte-stable Home Manager and
