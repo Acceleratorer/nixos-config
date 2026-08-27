@@ -79,6 +79,8 @@
           inherit caelestiaRealGreeter;
           inherit (pkgs) libglvnd mesa xorgserver;
         };
+      cryoforgeThemePacks =
+        pkgs.callPackage ./packages/cryoforge-theme-packs.nix { };
       cryoforgeSystem = mkNixos {
         desktopProfile = "caelestia-cryoforge";
       };
@@ -208,11 +210,138 @@
       caelestia-shell-cryoforge = caelestiaCryoforge;
       caelestia-real-greeter = caelestiaRealGreeter;
       caelestia-real-lock = caelestiaRealLock;
+      cryoforge-theme-packs = cryoforgeThemePacks;
       hyprexpo = pkgs.callPackage ./packages/hyprexpo.nix { };
     };
 
     checks.${system} = {
       inherit caelestiaRealGreeter;
+
+      phase19a-theme-pack-foundation-contract =
+        let
+          registryModel = import ./desktop/themes/registry.nix;
+          registry = registryModel { };
+          neutral = builtins.head registry.packs;
+          curated = neutral // {
+            id = "future-pack";
+            displayName = "Future Pack";
+            kind = "curated";
+            wallpaper = "assets/future.png";
+            preview = neutral.preview // {
+              thumbnail = "assets/future-thumbnail.png";
+            };
+          };
+          validates = candidate:
+            (builtins.tryEval (
+              builtins.deepSeq (registryModel { registry = candidate; }) true
+            )).success;
+          invalidRegistries = [
+            (registry // {
+              packs = [ (neutral // { id = "Neutral"; }) ];
+            })
+            (registry // { packs = [ neutral neutral ]; })
+            (registry // { defaultPackId = "missing"; })
+            (registry // { unexpected = true; })
+            (registry // {
+              packs = [ (neutral // { unexpected = true; }) ];
+            })
+            (registry // {
+              packs = [
+                (neutral // {
+                  palette = neutral.palette // { unexpected = "#000000"; };
+                })
+              ];
+            })
+            (registry // {
+              packs = [
+                (neutral // {
+                  shell = neutral.shell // { unexpected = "surface"; };
+                })
+              ];
+            })
+            (registry // {
+              packs = [
+                (neutral // {
+                  preview = neutral.preview // { unexpected = true; };
+                })
+              ];
+            })
+            (registry // {
+              packs = [
+                (neutral // {
+                  palette = neutral.palette // { accent = "#ABCDEF"; };
+                })
+              ];
+            })
+            (registry // {
+              packs = [
+                (neutral // {
+                  shell = neutral.shell // { panel = "missing"; };
+                })
+              ];
+            })
+            (registry // {
+              packs = [
+                (curated // {
+                  wallpaper = "https://example.invalid/future.png";
+                })
+              ];
+            })
+            (registry // {
+              packs = [ (curated // { wallpaper = "/assets/future.png"; }) ];
+            })
+            (registry // {
+              packs = [
+                (curated // { wallpaper = "assets/../future.png"; })
+              ];
+            })
+            (registry // {
+              packs = [
+                (curated // { wallpaper = "github:example/future"; })
+              ];
+            })
+            (registry // {
+              packs = [ (curated // { wallpaper = null; }) ];
+            })
+            (registry // {
+              packs = [
+                (curated // {
+                  preview = curated.preview // { thumbnail = null; };
+                })
+              ];
+            })
+          ];
+          expectedRegistry = builtins.toFile
+            "phase19a-theme-pack-registry.json"
+            (builtins.toJSON registry + "\n");
+          expectedPalette = builtins.toFile
+            "phase19a-theme-pack-palette.json"
+            (builtins.toJSON (import ./desktop/palette.nix) + "\n");
+          validatorEvidence =
+            assert validates (registry // { packs = [ neutral curated ]; });
+            assert builtins.all
+              (candidate: !validates candidate)
+              invalidRegistries;
+            builtins.toFile "phase19a-theme-pack-validator-evidence"
+              "valid local curated assets accepted; malformed models rejected\n";
+        in
+        pkgs.runCommand "phase19a-theme-pack-foundation-contract-tests" {
+          nativeBuildInputs = [
+            pkgs.bash
+            pkgs.coreutils
+            pkgs.findutils
+            pkgs.gnugrep
+            pkgs.python3
+          ];
+        } ''
+          bash ${./tests/phase19a/test_theme_pack_foundation_contract.sh} \
+            ${./.} \
+            ${cryoforgeThemePacks} \
+            ${expectedRegistry} \
+            ${expectedPalette} \
+            ${validatorEvidence}
+          touch "$out"
+        '';
 
       phase13c-real-lock-contract =
         pkgs.runCommand "phase13c-real-lock-contract-tests" {
