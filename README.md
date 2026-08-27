@@ -271,12 +271,19 @@ Completed:
 - Chisa gallery;
 - CryoForge window feel;
 - unified screenshot fix;
-- neutral Kitty and Fastfetch base.
-
-Planned:
-
+- neutral Kitty and Fastfetch base;
 - Phase 16D — Nexus Focus Hub;
-- Phase 16E — Media Workspace;
+- Phase 16E — Nexus Media Workspace.
+
+Current maintenance checkpoint:
+
+- R2 — Stable-base freeze;
+- R2A — documentation/build freeze, performed in this pass;
+- R2B — separate user-controlled cold-reboot smoke test, pending and not
+  performed in this pass.
+
+Future roadmap:
+
 - Phases 19A–19D — curated wallpaper theme packs.
 
 Future theme packs must preserve a stable neutral base first. Each pack may

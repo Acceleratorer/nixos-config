@@ -9,11 +9,11 @@ the same context.
 
 - Repository: `https://github.com/Acceleratorer/nixos-config`
 - Authoritative checkout on NixOS: `/home/accelra/Github/nixos-config`
-- Accepted code baseline before this plan was added: `main` at
+- Historical Phase 16E merge baseline: `main` at
   `8dc1fc3df2d77a5cc7fa01d29713c05f33b99ab6`
-- For future work, verify the live baseline with `git rev-parse origin/main`;
-  the hash above is a historical Phase 16E merge reference, not a permanent
-  expected `HEAD`.
+- At every phase boundary, verify the current repository baseline with:
+  `git rev-parse origin/main`
+  The historical merge hash above is not a permanent expected `HEAD`.
 - Current build target:
   `nixos-caelestia-cryoforge-real-greeter`
 - Pinned Caelestia shell revision:
@@ -226,19 +226,28 @@ Every future phase must preserve these rules:
 
 ### R2 — Stable-base freeze
 
-This is the next checkpoint before theme work. It is a maintenance phase, not
-a feature phase.
+This is the current checkpoint before theme work. It is a maintenance phase,
+not a feature phase, and must not change visual or behavioral features.
 
-Goals:
+#### R2A — Documentation/build freeze
 
-- Pull the merged `main` into every intended working checkout.
-- Update README status so Phase 16D and Phase 16E are marked completed.
-- Record the accepted Phase 16E system and repository baseline.
-- Run one cold-reboot smoke test.
-- Verify cold login, session startup, lock/unlock, Nexus, screenshot flow,
-  and recovery behavior.
-- Re-run the full offline contract/build suite.
-- Confirm the long-lived checkout is clean and synchronized.
+Performed in this pass:
+
+- Updated README and this plan to reflect completed Phase 16D and Phase 16E
+  work, the historical merge baseline, and the current freeze checkpoint.
+- Preserved the accepted Phase 16E system and pinned Caelestia revision.
+- Re-ran the existing offline contracts, evaluations, and exact
+  real-greeter build.
+- Introduced no new contract and changed no source, package, test, asset,
+  lockfile, or runtime behavior.
+
+#### R2B — User-controlled cold-reboot smoke test
+
+This is a separate checkpoint and was not performed in this pass. It remains
+user-controlled and must verify cold login, session startup, lock/unlock,
+Nexus, screenshot flow, and recovery behavior after a cold reboot.
+
+Phase 19A must not begin until R2B is complete and recorded.
 
 R2 must not change visual behavior or introduce theme machinery.
 
