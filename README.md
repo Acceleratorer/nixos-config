@@ -273,18 +273,19 @@ Completed:
 - unified screenshot fix;
 - neutral Kitty and Fastfetch base;
 - Phase 16D — Nexus Focus Hub;
-- Phase 16E — Nexus Media Workspace.
+- Phase 16E — Nexus Media Workspace;
+- R2 — Stable-base freeze, including the R2A documentation/build freeze and
+  the R2B cold-reboot smoke test of login, session startup, lock/unlock,
+  Nexus, screenshot, and recovery behavior.
 
-Current maintenance checkpoint:
+Next planned phase:
 
-- R2 — Stable-base freeze;
-- R2A — documentation/build freeze, performed in this pass;
-- R2B — separate user-controlled cold-reboot smoke test, pending and not
-  performed in this pass.
+- Phase 19A — curated theme-pack foundation.
 
 Future roadmap:
 
-- Phases 19A–19D — curated wallpaper theme packs.
+- Phases 19B–19D — first curated theme, manual Nexus selection, and bounded
+  application integration.
 
 Future theme packs must preserve a stable neutral base first. Each pack may
 provide an explicit curated palette plus a wallpaper and bounded UI/application

@@ -11,14 +11,16 @@ the same context.
 - Authoritative checkout on NixOS: `/home/accelra/Github/nixos-config`
 - Historical Phase 16E merge baseline: `main` at
   `8dc1fc3df2d77a5cc7fa01d29713c05f33b99ab6`
+- Historical R2B smoke-test baseline: `main` at
+  `71e3e88c3bc2a560afec59b55af9d67edba02478`
 - At every phase boundary, verify the current repository baseline with:
   `git rev-parse origin/main`
-  The historical merge hash above is not a permanent expected `HEAD`.
+  The historical hashes above are not permanent expected `HEAD` values.
 - Current build target:
   `nixos-caelestia-cryoforge-real-greeter`
 - Pinned Caelestia shell revision:
   `817a220e8e87c4df9f3681033a0d8a8054cdaa30`
-- Last verified and boot-persisted Phase 16E system:
+- R2 stable-base system, built in Phase 16E and verified after a cold reboot:
   `/nix/store/f62gina1wffrf2r5hfiw5prmxqavgxbh-nixos-system-nixos-26.05.6282.2f5a153c270b`
 
 Reference-only upstream clones:
@@ -224,14 +226,14 @@ Every future phase must preserve these rules:
 
 ## Next roadmap
 
-### R2 — Stable-base freeze
+### R2 — Stable-base freeze (completed)
 
-This is the current checkpoint before theme work. It is a maintenance phase,
-not a feature phase, and must not change visual or behavioral features.
+This maintenance checkpoint was completed without changing visual or
+behavioral features or introducing theme machinery.
 
 #### R2A — Documentation/build freeze
 
-Performed in this pass:
+Completed:
 
 - Updated README and this plan to reflect completed Phase 16D and Phase 16E
   work, the historical merge baseline, and the current freeze checkpoint.
@@ -243,13 +245,20 @@ Performed in this pass:
 
 #### R2B — User-controlled cold-reboot smoke test
 
-This is a separate checkpoint and was not performed in this pass. It remains
-user-controlled and must verify cold login, session startup, lock/unlock,
-Nexus, screenshot flow, and recovery behavior after a cold reboot.
+Completed against repository baseline
+`71e3e88c3bc2a560afec59b55af9d67edba02478` and system
+`/nix/store/f62gina1wffrf2r5hfiw5prmxqavgxbh-nixos-system-nixos-26.05.6282.2f5a153c270b`:
 
-Phase 19A must not begin until R2B is complete and recorded.
+- Cold reboot reached the real greeter and login completed normally.
+- The runtime and next-boot profile remained on the accepted system.
+- System and user unit health was clean, all required Caelestia/Hyprland
+  targets were active, and Hyprland reported no configuration errors.
+- Lock/unlock, Nexus Focus Hub, Nexus Media Workspace, and screenshot behavior
+  passed manual smoke testing.
+- The real-greeter recovery action returned to the recovery login as designed.
+- `main` remained clean and synchronized with `origin/main`.
 
-R2 must not change visual behavior or introduce theme machinery.
+R2 is complete. Phase 19A is now the next planned phase.
 
 ### Phase 19A — Curated theme-pack foundation
 
@@ -320,4 +329,5 @@ A phase is complete only when:
 - The change is committed directly to `main` and pushed.
 - README and this plan remain consistent with the repository state.
 
-Until R2 is explicitly started, do not begin Phase 19A implementation.
+R2 is complete. Begin Phase 19A only as its own narrowly scoped phase with a
+fresh Gate 0 and build-only review before any activation.
