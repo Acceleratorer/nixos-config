@@ -280,15 +280,20 @@ Completed:
 - Phase 19A — Curated theme-pack foundation, including the static schema
   version 1 registry, neutral default pack, deterministic immutable JSON
   package, and focused validation contract. This build-only foundation has no
-  runtime consumer and made no activation or behavior change.
+  runtime consumer and made no activation or behavior change;
+- Phase 19B — First curated wallpaper theme, adding CryoForge Denia as the
+  first curated pack while keeping neutral first and default. Denia is
+  packaged as a static repository asset with its manually curated palette,
+  preview, and provenance, but it has no runtime consumer and has not been
+  applied to the live desktop.
 
 Next planned phase:
 
-- Phase 19B — first curated wallpaper theme.
+- Phase 19C — manual Nexus theme selection, with preview-first selection,
+  explicit Apply, neutral fallback, and rollback-safe behavior.
 
 Future roadmap:
 
-- Phase 19C — manual Nexus theme selection;
 - Phase 19D — bounded application integration.
 
 Future theme packs must preserve a stable neutral base first. Each pack may

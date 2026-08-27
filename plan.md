@@ -203,6 +203,29 @@ retain their dedicated opaque/unblurred rules.
 - Performed no activation and introduced no behavior change. Phase 19A did not
   change the active neutral palette or the live runtime.
 
+### Phase 19B — First curated wallpaper theme
+
+- Added the first curated pack:
+  - Pack ID: `cryoforge-denia`
+  - Display name: `CryoForge Denia`
+  - Artist metadata: `1O`
+  - Artwork ID: `145492517`
+- Added the approved original as an unchanged JPEG/JFIF asset:
+  - Dimensions: `9000x4301`
+  - SHA-256:
+    `34e9569bd827a07c20715d6b14c09603c60755d4a9d829ed6b542fff6f3fefcb`
+- Added the deterministic static preview:
+  - Dimensions: `1600x765`
+  - SHA-256:
+    `f67c58a530a4e44c491937e13e33b36aedf9e6ac8b0fca8a25ba6c6696824045`
+- Kept neutral first and default. CryoForge Denia is second and is the only
+  curated pack.
+- Preserved the historical Phase 19A neutral-only registry and package
+  projection under its unchanged focused contract.
+- Added no runtime consumer, selector, persistence, activation, or behavior
+  change. CryoForge Denia is packaged but has not been applied to the live
+  desktop.
+
 ## Rejected or intentionally excluded work
 
 These decisions are part of the project history and must not be reintroduced
@@ -274,23 +297,10 @@ Completed against repository baseline
 - The real-greeter recovery action returned to the recovery login as designed.
 - `main` remained clean and synchronized with `origin/main`.
 
-R2 and Phase 19A are complete. Phase 19B is now the next planned phase.
+R2, Phase 19A, and Phase 19B are complete. Phase 19C is now the next planned
+phase.
 
-### Phase 19B — First curated wallpaper theme
-
-Create one first approved curated theme based on the wallpaper direction
-previously discussed:
-
-- Select exactly one canonical wallpaper.
-- Curate exactly one palette manually.
-- Define shell, card, accent, and background relationships.
-- Keep contrast and readability above decorative effects.
-- Compare the result against the old candidate-board visual direction.
-
-The theme must be a static repository asset and must not replace the neutral
-base.
-
-### Phase 19C — Manual Nexus theme selection
+### Phase 19C — Manual Nexus theme selection (next planned)
 
 Integrate theme packs into the existing Nexus flow:
 
@@ -299,11 +309,13 @@ Integrate theme packs into the existing Nexus flow:
 - Require an explicit Apply action.
 - Provide an explicit neutral fallback.
 - Keep selection manual and bounded.
+- Make rollback to neutral explicit and safe.
 - Avoid configuration overwrites and hidden background work.
 
 ### Phase 19D — Bounded application integration
 
-Only after shell/theme behavior is accepted:
+Keep application integration separate from Phase 19C. Only after manual
+shell/theme selection behavior is accepted:
 
 - Add opt-in Kitty/Fastfetch theme adapters.
 - Consider bounded GTK/Qt integration only if ownership is clear.
@@ -328,5 +340,6 @@ A phase is complete only when:
 - The change is committed directly to `main` and pushed.
 - README and this plan remain consistent with the repository state.
 
-R2 and Phase 19A are complete. Begin Phase 19B only as its own narrowly scoped
-phase with a fresh Gate 0 and build-only review before any activation.
+R2, Phase 19A, and Phase 19B are complete. Begin Phase 19C only as its own
+narrowly scoped, manual, preview-first, explicit-Apply, rollback-safe phase
+with a fresh Gate 0 and build-only review before any activation.
