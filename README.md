@@ -276,18 +276,23 @@ Completed:
 - Phase 16E — Nexus Media Workspace;
 - R2 — Stable-base freeze, including the R2A documentation/build freeze and
   the R2B cold-reboot smoke test of login, session startup, lock/unlock,
-  Nexus, screenshot, and recovery behavior.
+  Nexus, screenshot, and recovery behavior;
+- Phase 19A — Curated theme-pack foundation, including the static schema
+  version 1 registry, neutral default pack, deterministic immutable JSON
+  package, and focused validation contract. This build-only foundation has no
+  runtime consumer and made no activation or behavior change.
 
 Next planned phase:
 
-- Phase 19A — curated theme-pack foundation.
+- Phase 19B — first curated wallpaper theme.
 
 Future roadmap:
 
-- Phases 19B–19D — first curated theme, manual Nexus selection, and bounded
-  application integration.
+- Phase 19C — manual Nexus theme selection;
+- Phase 19D — bounded application integration.
 
 Future theme packs must preserve a stable neutral base first. Each pack may
 provide an explicit curated palette plus a wallpaper and bounded UI/application
-tokens. The policy excludes dynamic color extraction, timers, random rotation,
-network fetches, and uncontrolled theme engines.
+tokens. The policy excludes dynamic color extraction, network fetches, timers,
+watchers, random rotation, automatic switching, and uncontrolled theme
+engines.

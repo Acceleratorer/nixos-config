@@ -187,6 +187,22 @@ retain their dedicated opaque/unblurred rules.
 - Persisted the accepted consolidated generation as the next boot generation.
 - Kept rejected local behavior outside the repository.
 
+### Phase 19A — Curated theme-pack foundation
+
+- Added a static registry schema with `schemaVersion` 1.
+- Defined the neutral default pack through references to the existing semantic
+  palette.
+- Added a bounded shell/UI role map for panel, card, text, subdued text,
+  accent, outline, and focus roles.
+- Added a deterministic, immutable JSON package containing the rendered
+  registry.
+- Added a focused validation contract for schema shape, identifiers, palette
+  values, semantic references, local asset paths, package contents, and
+  protected stable-base sources.
+- Added no runtime consumer.
+- Performed no activation and introduced no behavior change. Phase 19A did not
+  change the active neutral palette or the live runtime.
+
 ## Rejected or intentionally excluded work
 
 These decisions are part of the project history and must not be reintroduced
@@ -258,32 +274,15 @@ Completed against repository baseline
 - The real-greeter recovery action returned to the recovery login as designed.
 - `main` remained clean and synchronized with `origin/main`.
 
-R2 is complete. Phase 19A is now the next planned phase.
-
-### Phase 19A — Curated theme-pack foundation
-
-Define a static, explicit theme-pack format and its contracts:
-
-- Pack ID and display name.
-- Wallpaper asset reference.
-- Explicit semantic palette.
-- Bounded shell/UI tokens.
-- Preview metadata.
-- Neutral fallback behavior.
-- No runtime color extraction.
-- No network fetch.
-- No timer, watcher, random rotation, or automatic switching.
-
-This phase should establish the data model and tests before introducing a
-large visual theme.
+R2 and Phase 19A are complete. Phase 19B is now the next planned phase.
 
 ### Phase 19B — First curated wallpaper theme
 
-Create the first approved custom theme based on the wallpaper direction
+Create one first approved curated theme based on the wallpaper direction
 previously discussed:
 
-- Select one canonical wallpaper.
-- Curate the palette manually.
+- Select exactly one canonical wallpaper.
+- Curate exactly one palette manually.
 - Define shell, card, accent, and background relationships.
 - Keep contrast and readability above decorative effects.
 - Compare the result against the old candidate-board visual direction.
@@ -329,5 +328,5 @@ A phase is complete only when:
 - The change is committed directly to `main` and pushed.
 - README and this plan remain consistent with the repository state.
 
-R2 is complete. Begin Phase 19A only as its own narrowly scoped phase with a
-fresh Gate 0 and build-only review before any activation.
+R2 and Phase 19A are complete. Begin Phase 19B only as its own narrowly scoped
+phase with a fresh Gate 0 and build-only review before any activation.
