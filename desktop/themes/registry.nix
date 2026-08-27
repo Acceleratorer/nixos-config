@@ -30,6 +30,7 @@
           ];
         };
       }
+      (import ./cryoforge-denia/pack.nix)
     ];
   },
 }:

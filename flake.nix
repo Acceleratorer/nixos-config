@@ -79,8 +79,25 @@
           inherit caelestiaRealGreeter;
           inherit (pkgs) libglvnd mesa xorgserver;
         };
+      themeRegistryModel = import ./desktop/themes/registry.nix;
+      currentThemeRegistry = themeRegistryModel { };
+      neutralThemePack = builtins.head currentThemeRegistry.packs;
+      phase19aThemeRegistry = themeRegistryModel {
+        registry = currentThemeRegistry // {
+          packs = [ neutralThemePack ];
+        };
+      };
       cryoforgeThemePacks =
-        pkgs.callPackage ./packages/cryoforge-theme-packs.nix { };
+        pkgs.callPackage ./packages/cryoforge-theme-packs.nix {
+          registry = currentThemeRegistry;
+        };
+      currentThemePacks = cryoforgeThemePacks;
+      phase19aThemePacks =
+        pkgs.callPackage ./packages/cryoforge-theme-packs.nix {
+          registry = phase19aThemeRegistry;
+          version = "1.0.0";
+          includeCuratedAssets = false;
+        };
       cryoforgeSystem = mkNixos {
         desktopProfile = "caelestia-cryoforge";
       };
@@ -145,6 +162,33 @@
           builtins.length parts == 2
         ) "${label} must match exactly once";
         nixpkgs.lib.concatStringsSep replacement parts;
+      phase19aRegistrySourceText =
+        replaceExactly
+          "Phase 19A registry"
+          "      (import ./cryoforge-denia/pack.nix)\n"
+          ""
+          (builtins.readFile ./desktop/themes/registry.nix);
+      phase19aRegistrySource =
+        assert nixpkgs.lib.assertMsg (
+          builtins.hashString "sha256" phase19aRegistrySourceText
+          == "5cae58665564915b987b2582d6173c616c661b548df81d291af9aebcaf7b92cf"
+        ) "Pre-Phase-19B registry projection changed historical content";
+        builtins.toFile
+          "phase19a-theme-pack-registry.nix"
+          phase19aRegistrySourceText;
+      phase19aSourceProjection =
+        pkgs.runCommand "phase19a-theme-pack-source-projection" { } ''
+          mkdir -p "$out"
+          cp -R ${./.}/. "$out/"
+          chmod -R u+w "$out/desktop/themes" "$out/tests"
+          rm -rf \
+            "$out/desktop/themes/cryoforge-denia" \
+            "$out/tests/phase19b"
+          rm "$out/desktop/themes/registry.nix"
+          install -m 0444 \
+            ${phase19aRegistrySource} \
+            "$out/desktop/themes/registry.nix"
+        '';
       removeExactSnippets = phase: snippets: value:
         nixpkgs.lib.foldl'
           (current: snippet:
@@ -219,8 +263,8 @@
 
       phase19a-theme-pack-foundation-contract =
         let
-          registryModel = import ./desktop/themes/registry.nix;
-          registry = registryModel { };
+          registryModel = themeRegistryModel;
+          registry = phase19aThemeRegistry;
           neutral = builtins.head registry.packs;
           curated = neutral // {
             id = "future-pack";
@@ -335,11 +379,49 @@
           ];
         } ''
           bash ${./tests/phase19a/test_theme_pack_foundation_contract.sh} \
-            ${./.} \
-            ${cryoforgeThemePacks} \
+            ${phase19aSourceProjection} \
+            ${phase19aThemePacks} \
             ${expectedRegistry} \
             ${expectedPalette} \
             ${validatorEvidence}
+          touch "$out"
+        '';
+
+      phase19b-first-curated-theme-contract =
+        let
+          expectedRegistry = builtins.toFile
+            "phase19b-theme-pack-registry.json"
+            (builtins.toJSON currentThemeRegistry + "\n");
+          phase19aExpectedRegistry = builtins.toFile
+            "phase19b-phase19a-theme-pack-registry.json"
+            (builtins.toJSON phase19aThemeRegistry + "\n");
+          expectedPalette = builtins.toFile
+            "phase19b-theme-pack-neutral-palette.json"
+            (builtins.toJSON (import ./desktop/palette.nix) + "\n");
+          phase19aValidatorEvidence = builtins.toFile
+            "phase19b-phase19a-theme-pack-validator-evidence"
+            "valid local curated assets accepted; malformed models rejected\n";
+        in
+        pkgs.runCommand "phase19b-first-curated-theme-contract-tests" {
+          nativeBuildInputs = [
+            pkgs.bash
+            pkgs.coreutils
+            pkgs.findutils
+            pkgs.gnugrep
+            pkgs.gnused
+            pkgs.python3
+          ];
+        } ''
+          bash ${./tests/phase19b/test_first_curated_theme_contract.sh} \
+            ${./.} \
+            ${./desktop/themes/cryoforge-denia/wallpaper.jpg} \
+            ${currentThemePacks} \
+            ${expectedRegistry} \
+            ${phase19aSourceProjection} \
+            ${phase19aThemePacks} \
+            ${phase19aExpectedRegistry} \
+            ${expectedPalette} \
+            ${phase19aValidatorEvidence}
           touch "$out"
         '';
 
