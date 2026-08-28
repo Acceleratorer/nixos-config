@@ -92,6 +92,10 @@ in
       message = "The real-greeter audition output must retain greetd's normal restart behavior.";
     }
     {
+      assertion = config.systemd.services.greetd.serviceConfig.Restart == "always";
+      message = "The real-greeter target must always recover from an exited greetd process.";
+    }
+    {
       assertion = !config.systemd.services.greetd.stopIfChanged;
       message = "The real-greeter audition output must restart greetd in one transaction, never stop then start it.";
     }
@@ -154,6 +158,7 @@ in
       "${quietHyprlandSessionData}/share:${config.environment.sessionVariables.XDG_DATA_DIRS}"
     );
     serviceConfig = {
+      Restart = lib.mkForce "always";
       StandardOutput = "journal";
       StandardError = "journal";
     };

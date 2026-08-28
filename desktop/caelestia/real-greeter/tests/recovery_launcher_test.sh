@@ -81,6 +81,37 @@ phase13b-recovery)
     test "$GREETD_SOCK" = "$PHASE13B_EXPECTED_SOCK"
     test "$WAYLAND_DISPLAY" = phase13b-wayland
     test "$XDG_RUNTIME_DIR" = "$PHASE13B_ORIGINAL_RUNTIME"
+    test "$HOME" = "$CAELESTIA_GREETER_STATE_ROOT/recovery/home"
+    test "$XDG_CACHE_HOME" = "$CAELESTIA_GREETER_RUNTIME_ROOT/recovery/cache"
+    test "$XDG_CONFIG_HOME" = "$CAELESTIA_GREETER_RUNTIME_ROOT/recovery/config"
+    test "$XDG_DATA_HOME" = "$CAELESTIA_GREETER_RUNTIME_ROOT/recovery/data"
+    test "$XDG_STATE_HOME" = "$CAELESTIA_GREETER_STATE_ROOT/recovery/state"
+    mapfile -t recovery_xdg_dirs < <(
+        printf '%s\n' \
+            "$HOME" \
+            "$XDG_CACHE_HOME" \
+            "$XDG_CONFIG_HOME" \
+            "$XDG_DATA_HOME" \
+            "$XDG_STATE_HOME" \
+            | sort -u
+    )
+    test "${#recovery_xdg_dirs[@]}" -eq 5
+    for private_dir in \
+        "$CAELESTIA_GREETER_RUNTIME_ROOT/recovery" \
+        "$CAELESTIA_GREETER_RUNTIME_ROOT/recovery/cache" \
+        "$CAELESTIA_GREETER_RUNTIME_ROOT/recovery/config" \
+        "$CAELESTIA_GREETER_RUNTIME_ROOT/recovery/data" \
+        "$CAELESTIA_GREETER_STATE_ROOT/recovery" \
+        "$CAELESTIA_GREETER_STATE_ROOT/recovery/home" \
+        "$CAELESTIA_GREETER_STATE_ROOT/recovery/state"; do
+        test "$(stat -c %a "$private_dir")" = 700
+        test -w "$private_dir"
+    done
+    test "$HOME" != "$CAELESTIA_GREETER_STATE_ROOT/home"
+    test "$XDG_CACHE_HOME" != "$CAELESTIA_GREETER_RUNTIME_ROOT/cache"
+    test "$XDG_CONFIG_HOME" != "$CAELESTIA_GREETER_RUNTIME_ROOT/config"
+    test "$XDG_DATA_HOME" != "$CAELESTIA_GREETER_RUNTIME_ROOT/data"
+    test "$XDG_STATE_HOME" != "$CAELESTIA_GREETER_STATE_ROOT/state"
     test "${CAELESTIA_GREETER_CONTROL_DIR+x}" != x
     test "${CAELESTIA_GREETER_RUNTIME_DIR+x}" != x
     test "${CAELESTIA_GREETER_PROCESS_USER+x}" != x
@@ -124,6 +155,11 @@ run_scenario() {
 
     status=0
     env \
+        HOME="$test_root/ambient-home-$run_number" \
+        XDG_CACHE_HOME="$test_root/ambient-cache-$run_number" \
+        XDG_CONFIG_HOME="$test_root/ambient-config-$run_number" \
+        XDG_DATA_HOME="$test_root/ambient-data-$run_number" \
+        XDG_STATE_HOME="$test_root/ambient-state-$run_number" \
         GREETD_SOCK="$runtime_base/greetd.sock" \
         WAYLAND_DISPLAY=phase13b-wayland \
         XDG_RUNTIME_DIR="$runtime_base" \

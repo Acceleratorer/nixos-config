@@ -162,6 +162,160 @@
           builtins.length parts == 2
         ) "${label} must match exactly once";
         nixpkgs.lib.concatStringsSep replacement parts;
+      # R3 historical projection begin
+      removeDelimited = label: start: end: value:
+        let
+          startParts = nixpkgs.lib.splitString start value;
+          endParts = nixpkgs.lib.splitString end (builtins.elemAt startParts 1);
+        in
+        assert nixpkgs.lib.assertMsg (
+          builtins.length startParts == 2
+          && builtins.length endParts == 2
+        ) "${label} markers must occur exactly once";
+        builtins.head startParts + builtins.elemAt endParts 1;
+      r3ProjectionStart =
+        "      # R3 historical projection begin\n";
+      r3ProjectionEnd =
+        "      # R3 historical projection end\n";
+      currentFlakeSource = builtins.readFile ./flake.nix;
+      flakeWithoutR3Projection = removeDelimited
+        "R3 historical projection"
+        r3ProjectionStart
+        r3ProjectionEnd
+        currentFlakeSource;
+      preR3FlakeSourceText = builtins.replaceStrings
+        [
+          "\${r3HistoricalSourceProjection}/desktop/caelestia/real-greeter-system.nix"
+          "\${r3HistoricalSourceProjection}/desktop/caelestia/real-greeter"
+          "\${r3HistoricalSourceProjection}/flake.nix"
+          "\${r3HistoricalSourceProjection}"
+          "        assert realGreeterSystem.config.systemd.services.greetd.serviceConfig.Restart == \"always\";\n"
+          "          grep -Fqx 'Restart=always' \${realGreeterGreetdUnit}/greetd.service\n"
+        ]
+        [
+          "\${./desktop/caelestia/real-greeter-system.nix}"
+          "\${./desktop/caelestia/real-greeter}"
+          "\${./flake.nix}"
+          "\${./.}"
+          ""
+          ""
+        ]
+        flakeWithoutR3Projection;
+      preR3FlakeSource =
+        assert nixpkgs.lib.assertMsg (
+          builtins.hashString "sha256" preR3FlakeSourceText
+          == "a99978a6c7475c4cf80c34083fd4d1a67c87f19730487b576187fe1d97e91244"
+        ) "Pre-R3 flake projection changed historical content";
+        builtins.toFile "r3-pre-r3-flake.nix" preR3FlakeSourceText;
+      currentRealGreeterSystemSource =
+        builtins.readFile ./desktop/caelestia/real-greeter-system.nix;
+      preR3RealGreeterSystemSourceText =
+        replaceExactly
+          "R3 greetd restart policy"
+          "      Restart = lib.mkForce \"always\";\n"
+          ""
+          (
+            removeDelimited
+              "R3 greetd restart assertion"
+              "    {\n      assertion = config.systemd.services.greetd.serviceConfig.Restart == \"always\";\n"
+              "      message = \"The real-greeter target must always recover from an exited greetd process.\";\n    }\n"
+              currentRealGreeterSystemSource
+          );
+      preR3RealGreeterSystemSource =
+        assert nixpkgs.lib.assertMsg (
+          builtins.hashString "sha256" preR3RealGreeterSystemSourceText
+          == "e63487de3f193c738a13bb4429b6bc83c01f73767de81057cb1e1ead58f99ce3"
+        ) "Pre-R3 real-greeter system projection changed historical content";
+        builtins.toFile
+          "r3-pre-r3-real-greeter-system.nix"
+          preR3RealGreeterSystemSourceText;
+      currentRecoveryLauncherSource =
+        builtins.readFile ./desktop/caelestia/real-greeter/recovery-launcher.sh;
+      preR3RecoveryLauncherSourceText =
+        replaceExactly
+          "R3 recovery launcher environment"
+          ''
+            start_recovery() {
+                exec env \
+                    HOME="$recovery_state_root/home" \
+                    XDG_CACHE_HOME="$recovery_runtime_root/cache" \
+                    XDG_CONFIG_HOME="$recovery_runtime_root/config" \
+                    XDG_DATA_HOME="$recovery_runtime_root/data" \
+                    XDG_STATE_HOME="$recovery_state_root/state" \
+                    "$recovery" --logs "$recovery_log" --log-level warn
+            }
+          ''
+          ''
+            start_recovery() {
+                exec "$recovery" --logs "$recovery_log" --log-level warn
+            }
+          ''
+          (
+            removeDelimited
+              "R3 recovery state directories"
+              "    \"$state_root/recovery\" \\\n"
+              "    \"$state_root/recovery/state\" \\\n"
+              (
+                removeDelimited
+                  "R3 recovery runtime directories"
+                  "    \"$runtime_root/recovery\" \\\n"
+                  "    \"$runtime_root/recovery/data\" \\\n"
+                  (
+                    removeDelimited
+                      "R3 recovery roots"
+                      "recovery_runtime_root=\"$runtime_root/recovery\"\n"
+                      "recovery_state_root=\"$state_root/recovery\"\n"
+                      currentRecoveryLauncherSource
+                  )
+              )
+          );
+      preR3RecoveryLauncherSource =
+        assert nixpkgs.lib.assertMsg (
+          builtins.hashString "sha256" preR3RecoveryLauncherSourceText
+          == "b9c45baa3af6c00b465b01eb88bcf98ce9aa613d35b0aa8d7359f13278e2961c"
+        ) "Pre-R3 recovery launcher projection changed historical content";
+        builtins.toFile
+          "r3-pre-r3-recovery-launcher.sh"
+          preR3RecoveryLauncherSourceText;
+      currentRecoveryLauncherTestSource =
+        builtins.readFile ./desktop/caelestia/real-greeter/tests/recovery_launcher_test.sh;
+      preR3RecoveryLauncherTestSourceText =
+        removeDelimited
+          "R3 recovery launcher ambient XDG test"
+          "        HOME=\"$test_root/ambient-home-$run_number\" \\\n"
+          "        XDG_STATE_HOME=\"$test_root/ambient-state-$run_number\" \\\n"
+          (
+            removeDelimited
+              "R3 recovery launcher private XDG test"
+              "    test \"$HOME\" = \"$CAELESTIA_GREETER_STATE_ROOT/recovery/home\"\n"
+              "    test \"$XDG_STATE_HOME\" != \"$CAELESTIA_GREETER_STATE_ROOT/state\"\n"
+              currentRecoveryLauncherTestSource
+          );
+      preR3RecoveryLauncherTestSource =
+        assert nixpkgs.lib.assertMsg (
+          builtins.hashString "sha256" preR3RecoveryLauncherTestSourceText
+          == "2d152de7ae38ff3e5c5c404db7e82b12faf5ba73a8c45daf83684a7f1d8c1d56"
+        ) "Pre-R3 recovery launcher test projection changed historical content";
+        builtins.toFile
+          "r3-pre-r3-recovery-launcher-test.sh"
+          preR3RecoveryLauncherTestSourceText;
+      r3HistoricalSourceProjection =
+        pkgs.runCommand "r3-historical-source-projection" { } ''
+          mkdir -p "$out"
+          cp -R ${./.}/. "$out/"
+          chmod -R u+w "$out"
+          install -m 0444 ${preR3FlakeSource} "$out/flake.nix"
+          install -m 0444 \
+            ${preR3RealGreeterSystemSource} \
+            "$out/desktop/caelestia/real-greeter-system.nix"
+          install -m 0444 \
+            ${preR3RecoveryLauncherSource} \
+            "$out/desktop/caelestia/real-greeter/recovery-launcher.sh"
+          install -m 0555 \
+            ${preR3RecoveryLauncherTestSource} \
+            "$out/desktop/caelestia/real-greeter/tests/recovery_launcher_test.sh"
+        '';
+      # R3 historical projection end
       phase19aRegistrySourceText =
         replaceExactly
           "Phase 19A registry"
@@ -179,7 +333,7 @@
       phase19aSourceProjection =
         pkgs.runCommand "phase19a-theme-pack-source-projection" { } ''
           mkdir -p "$out"
-          cp -R ${./.}/. "$out/"
+          cp -R ${r3HistoricalSourceProjection}/. "$out/"
           chmod -R u+w "$out/desktop/themes" "$out/tests"
           rm -rf \
             "$out/desktop/themes/cryoforge-denia" \
@@ -413,7 +567,7 @@
           ];
         } ''
           bash ${./tests/phase19b/test_first_curated_theme_contract.sh} \
-            ${./.} \
+            ${r3HistoricalSourceProjection} \
             ${./desktop/themes/cryoforge-denia/wallpaper.jpg} \
             ${currentThemePacks} \
             ${expectedRegistry} \
@@ -548,7 +702,7 @@
             ${caelestia-dots} \
             ${./desktop/hypr/hyprland.conf} \
             ${./desktop/profiles.nix} \
-            ${./flake.nix} \
+            ${r3HistoricalSourceProjection}/flake.nix \
             ${./desktop/caelestia/cryoforge-special-workspaces.patch} \
             ${./desktop/caelestia/cryoforge-region-screenshot.patch} \
             ${./desktop/caelestia/screenshot-region.sh} \
@@ -638,19 +792,19 @@
             ${targetSeedScript} \
             ${stockSeedScript} \
             ${./desktop/profiles.nix} \
-            ${./flake.nix} \
+            ${r3HistoricalSourceProjection}/flake.nix \
             ${./flake.lock} \
             ${./home.nix} \
             ${./configuration.nix} \
             ${./desktop-hyprland.nix} \
             ${./desktop/caelestia/chisa-pool} \
-            ${./desktop/caelestia/real-greeter} \
+            ${r3HistoricalSourceProjection}/desktop/caelestia/real-greeter \
             ${./desktop/regreet} \
             ${./desktop/hypr} \
             ${phase16dBaseCryoforgePackage} \
             ${./packages/caelestia-real-greeter.nix} \
             ${./packages/caelestia-real-lock.nix} \
-            ${./desktop/caelestia/real-greeter-system.nix} \
+            ${r3HistoricalSourceProjection}/desktop/caelestia/real-greeter-system.nix \
             ${./desktop/caelestia/cryoforge-chisa-preset-gallery.patch} \
             ${./desktop/caelestia/cryoforge-special-workspaces.patch} \
             ${./desktop/caelestia/cryoforge-region-screenshot.patch} \
@@ -684,9 +838,9 @@
           ${phase16eBaseCryoforgePackage} \
           ${./desktop/caelestia/cryoforge-nexus-focus-hub.patch} \
           ${./desktop/caelestia/nexus/FocusHubPage.qml} \
-          ${./flake.nix} \
+          ${r3HistoricalSourceProjection}/flake.nix \
           ${./flake.lock} \
-          ${./.} \
+          ${r3HistoricalSourceProjection} \
           ${realGreeterSystem.config.system.build.toplevel}
         touch "$out"
       '';
@@ -720,9 +874,9 @@
             ${./desktop/caelestia/nexus/MediaWorkspacePage.qml} \
             ${./desktop/caelestia/cryoforge-nexus-focus-hub.patch} \
             ${./desktop/caelestia/nexus/FocusHubPage.qml} \
-            ${./flake.nix} \
+            ${r3HistoricalSourceProjection}/flake.nix \
             ${./flake.lock} \
-            ${./.} \
+            ${r3HistoricalSourceProjection} \
             ${targetSystem.config.system.build.toplevel}
           touch "$out"
         '';
@@ -826,6 +980,7 @@
         assert realGreeterSystem.config.services.greetd.restart;
         assert realGreeterSystem.config.systemd.services.greetd.restartIfChanged;
         assert !realGreeterSystem.config.systemd.services.greetd.stopIfChanged;
+        assert realGreeterSystem.config.systemd.services.greetd.serviceConfig.Restart == "always";
         assert !cryoforgeSystem.config.systemd.services.greetd.restartIfChanged;
         assert cryoforgeSystem.config.systemd.services.greetd.stopIfChanged;
         assert realGreeterSystem.config.boot.plymouth.enable;
@@ -894,6 +1049,7 @@
             ${realGreeterSystem.config.system.build.toplevel}/sw/bin/phase13b-real-greeter-audition
           ! grep -Fqx 'X-RestartIfChanged=false' ${realGreeterGreetdUnit}/greetd.service
           grep -Fqx 'X-StopIfChanged=false' ${realGreeterGreetdUnit}/greetd.service
+          grep -Fqx 'Restart=always' ${realGreeterGreetdUnit}/greetd.service
           grep -Fqx 'StandardOutput=journal' ${realGreeterGreetdUnit}/greetd.service
           grep -Fqx 'StandardError=journal' ${realGreeterGreetdUnit}/greetd.service
           ! grep -Fqx 'StandardOutput=tty' ${realGreeterGreetdUnit}/greetd.service

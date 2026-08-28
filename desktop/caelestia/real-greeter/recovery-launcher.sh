@@ -17,6 +17,8 @@ runtime_root=${CAELESTIA_GREETER_RUNTIME_ROOT:-"$XDG_RUNTIME_DIR/caelestia-real-
 state_root=${CAELESTIA_GREETER_STATE_ROOT:-"/var/lib/caelestia-real-greeter"}
 control_dir="$runtime_root/control"
 candidate_runtime="$runtime_root/runtime"
+recovery_runtime_root="$runtime_root/recovery"
+recovery_state_root="$state_root/recovery"
 case "$WAYLAND_DISPLAY" in
     /*) candidate_wayland_display=$WAYLAND_DISPLAY ;;
     *) candidate_wayland_display="$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" ;;
@@ -30,9 +32,16 @@ install -d -m 0700 \
     "$runtime_root/config" \
     "$runtime_root/control" \
     "$runtime_root/data" \
+    "$runtime_root/recovery" \
+    "$runtime_root/recovery/cache" \
+    "$runtime_root/recovery/config" \
+    "$runtime_root/recovery/data" \
     "$runtime_root/runtime" \
     "$state_root" \
     "$state_root/home" \
+    "$state_root/recovery" \
+    "$state_root/recovery/home" \
+    "$state_root/recovery/state" \
     "$state_root/state"
 
 rm -f \
@@ -58,7 +67,13 @@ env \
     "$candidate" || candidate_status=$?
 
 start_recovery() {
-    exec "$recovery" --logs "$recovery_log" --log-level warn
+    exec env \
+        HOME="$recovery_state_root/home" \
+        XDG_CACHE_HOME="$recovery_runtime_root/cache" \
+        XDG_CONFIG_HOME="$recovery_runtime_root/config" \
+        XDG_DATA_HOME="$recovery_runtime_root/data" \
+        XDG_STATE_HOME="$recovery_state_root/state" \
+        "$recovery" --logs "$recovery_log" --log-level warn
 }
 
 if (( candidate_status == 0 )); then
