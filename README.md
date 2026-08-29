@@ -22,15 +22,16 @@ The current development and build target is:
 nixos-caelestia-cryoforge-real-greeter
 ```
 
-At the Phase 19C closure on August 29, 2026, both the running system and the
-next-boot profile used:
+At the completed Phase 19C wallpaper-persistence closure on August 30, 2026,
+the current, booted, and next-boot system all used:
 
 ```text
-/nix/store/9jch06zb0vczkbymw6321cfi02rl2azj-nixos-system-nixos-26.05.6282.2f5a153c270b
+/nix/store/7k1qr9db019m201gpq9phvhs1a9arp8c-nixos-system-nixos-26.05.6282.2f5a153c270b
 ```
 
-Boot persistence was configured and verified. A user-controlled cold reboot
-into this Phase 19C generation has not yet been performed.
+The real cold reboot into this generation completed successfully. The
+repository hotfix is commit
+`74dcc84dbd43fad53284e4004379efcadd63671e`.
 
 ## Flake outputs
 
@@ -71,6 +72,27 @@ Login and locking are separate systems:
 The cold-login package does not contain the session-lock API, and the
 session-lock package does not authenticate through `greetd` or ReGreet. This
 separation is enforced by the lock and greeter contracts.
+
+As of commit `74dcc84dbd43fad53284e4004379efcadd63671e`, the
+pre-authentication real `greetd` password-entry screen uses the accepted
+static Chisa presentation. After authentication, the logged-in `accelra`
+session restores the persisted Denia theme. This Chisa-to-Denia transition
+was observed during the successful August 30, 2026 cold reboot. In this
+context, “boot screen” means the real `greetd` password-entry screen, not the
+bootloader or Plymouth.
+
+Phase 19C fixed logged-in wallpaper persistence; it did not implement
+cross-surface theme continuity. Static Chisa at the current greeter is
+therefore a known visual-continuity limitation, not a wallpaper-persistence
+failure or the permanent desired UX.
+
+The security boundary is independent of that visual limitation. The
+pre-authentication greeter must never read mutable theme or wallpaper state
+directly from `accelra`'s HOME. Future continuity must preserve
+greeter/session/authentication isolation. A future greeter may consume only a
+sanitized, validated system-level active theme selection and map it to
+immutable, approved assets. That system-visible selection mechanism does not
+exist yet.
 
 This repository does **not** claim Secure Boot, disk encryption, or encrypted
 swap. The current hardware declaration uses a plain ext4 root filesystem and
@@ -121,16 +143,84 @@ mode = dark
 variant = tonalspot
 ```
 
-Runtime scheme metadata remained null; the canonical identity is represented
-by the four fields above. The guarded Caelestia CLI and shell consume the same
-packaged scheme data. CLI contracts isolate HOME and XDG state, disable all
-adapters, and prohibit numbered PTY access and terminal escape output.
+Runtime metadata is not part of the accepted identity and may remain null; no
+populated runtime metadata is claimed. The guarded Caelestia CLI and shell
+consume the same packaged scheme data. CLI contracts isolate HOME and XDG
+state, disable all adapters, and prohibit numbered PTY access and terminal
+escape output.
 
 No daemon, timer, watcher, network route, automatic theme switching, or
 application adapter was added. Preview/Cancel passed for Neutral and Denia;
 Apply passed for Denia. Denia remained selected after closing and reopening
 Nexus and after a controlled `caelestia.service` restart. The Caelestia bar,
 notification ownership, session targets, and `greetd` remained healthy.
+
+The initial implementation was commit
+`25a33eebc2d6c1af06b86f74590bc022797a43d6`, followed by the earlier Phase
+19C documentation commit `c974d7fa9996c726d18bd0b4dc9fee54996a481b`.
+The first cold reboot into the historical `9jch…` generation passed its system
+and service gate, but subsequent logged-in visual review exposed a real
+wallpaper-persistence defect: the Denia scheme identity survived while the
+wallpaper returned to Chisa. That reboot therefore did not prove visual Denia
+persistence.
+
+The defect had two causes:
+
+- Home Manager's Chisa initializer unconditionally rewrote
+  `wallpaper/path.txt` during startup.
+- Denia Apply updated `scheme.json` and `wallpaper/path.txt`, but not
+  Caelestia's canonical `wallpaper/current` link.
+
+Commit `74dcc84dbd43fad53284e4004379efcadd63671e` corrected only
+`desktop/profiles.nix`, `desktop/themes/apply-theme-pack.sh`, `flake.nix`, and
+`tests/phase19c/test_manual_theme_selection_contract.sh`. The startup
+initializer now preserves valid persisted wallpapers, seeds Chisa only for
+missing or invalid state, and repairs `wallpaper/current` from validated
+`path.txt`. Denia Apply transactionally updates and rolls back both
+`path.txt` and `wallpaper/current`; Neutral continues to preserve the current
+wallpaper. Traversal, unsafe symlinks, unavailable files, malformed state, and
+an invalid Denia hash fail closed.
+
+Focused and historical contracts, offline flake checks, all four NixOS
+evaluations, real-greeter preservation, dry activation, test activation,
+Neutral Apply, Denia Apply, a controlled Caelestia restart, boot persistence,
+and a real cold reboot all completed successfully. On August 30, 2026, that
+cold reboot proved:
+
+- current, booted, and system-profile paths all equal the accepted `7k1…`
+  system recorded above;
+- Denia's scheme identity survived;
+- `wallpaper/path.txt` and `wallpaper/current` both remained on the
+  materialized Denia wallpaper, whose approved SHA-256 remained intact;
+- the approved Denia wallpaper remained visible after login;
+- `greetd.service`, `caelestia.service`, `hyprland-session.target`, and
+  `nixos-cryoforge-caelestia-cryoforge.target` were active;
+- system and user failed-unit counts were zero and Hyprland reported no
+  configuration errors; and
+- Caelestia retained ownership of `org.freedesktop.Notifications`.
+
+### Cross-surface continuity remains future work
+
+Phase 19D is planned but has not begun. Its product target is for the last
+successfully Applied approved theme pack to remain visually consistent across
+the logged-in shell and wallpaper, the Caelestia `WlSessionLock`, suspend and
+resume through that lock path, the next real `greetd` password screen after
+logout or cold boot, and the subsequent logged-in session.
+
+Applying Chisa, CryoForge Denia, or another future approved pack should keep
+that pack consistent across those surfaces. Preview, Cancel, Escape, and Back
+must never publish a system-visible selection, and a failed Apply must not
+partially publish one. None of this cross-surface publication behavior is
+implemented by Phase 19C.
+
+The intended system supports many curated, wallpaper-backed theme packs, not
+only Chisa and Denia. Candidate wallpapers are not automatically theme packs;
+they become eligible only after promotion into explicit approved packs with
+stable IDs, curated palettes, immutable packaged assets, and pinned hashes.
+
+Neutral remains distinct from Chisa: it changes the semantic palette while
+preserving the currently selected wallpaper. The preserved wallpaper identity
+must remain available to the future lock and greeter continuity mechanism.
 
 ## Screenshot workflow
 
@@ -327,19 +417,22 @@ Completed:
   packaged as a static repository asset with its manually curated palette,
   preview, and provenance. At the Phase 19B boundary it had no runtime
   consumer and had not been applied to the live desktop;
-- Phase 19C — Manual Nexus theme selection, completed on August 29, 2026.
-  Preview/Cancel passed for Neutral and Denia, explicit transactional Apply
-  passed for Denia, boot persistence was verified, and the implementation is
-  commit `25a33eebc2d6c1af06b86f74590bc022797a43d6`.
+- Phase 19C — Manual Nexus theme selection and its wallpaper-persistence
+  correction, completed on August 30, 2026. The original implementation is
+  commit `25a33eebc2d6c1af06b86f74590bc022797a43d6`, the earlier documentation
+  commit is `c974d7fa9996c726d18bd0b4dc9fee54996a481b`, and the corrective hotfix
+  is commit `74dcc84dbd43fad53284e4004379efcadd63671e`. The accepted `7k1…`
+  generation passed the real cold-reboot persistence and runtime-health gate.
 
 Next planned phase:
 
-- Phase 19D — bounded application integration.
+- Phase 19D — persistent cross-surface theme continuity. This phase is
+  planned but has not begun.
 
-Pending operational validation:
+Following phase:
 
-- A user-controlled cold reboot into the boot-persisted Phase 19C generation.
-  This remains separate from implementation work.
+- Phase 19E — bounded application integration, only after Phase 19D is
+  accepted.
 
 Future theme packs must preserve a stable neutral base first. Each pack may
 provide an explicit curated palette plus a wallpaper and bounded UI/application
