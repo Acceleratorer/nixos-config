@@ -327,6 +327,16 @@
           && builtins.length endParts == 2
         ) "${label} markers must occur exactly once";
         builtins.head startParts + builtins.elemAt endParts 1;
+      replaceDelimited = label: start: end: replacement: value:
+        let
+          startParts = nixpkgs.lib.splitString start value;
+          endParts = nixpkgs.lib.splitString end (builtins.elemAt startParts 1);
+        in
+        assert nixpkgs.lib.assertMsg (
+          builtins.length startParts == 2
+          && builtins.length endParts == 2
+        ) "${label} markers must occur exactly once";
+        builtins.head startParts + replacement + builtins.elemAt endParts 1;
       phase19cProjectionStart =
         "      # Phase 19C historical projection begin\n";
       phase19cProjectionEnd =
@@ -399,6 +409,31 @@
         ) "Pre-Phase-19C flake projection changed historical content";
         builtins.toFile "phase19c-pre19c-flake.nix" pre19cFlakeSourceText;
       currentProfilesSource = builtins.readFile ./desktop/profiles.nix;
+      historicalChisaPoolInitializer = builtins.concatStringsSep "\n" [
+        "  initialiseChisaPoolState = pkgs.writeShellScript \"initialise-chisa-pool-state\" ''"
+        "    set -eu"
+        ""
+        "    state_home=\"''\${XDG_STATE_HOME:-$HOME/.local/state}\""
+        "    state_dir=\"$state_home/caelestia\""
+        "    wallpaper_dir=\"$state_dir/wallpaper\""
+        ""
+        "    \${pkgs.coreutils}/bin/install -d -m 0700 \"$state_dir\" \"$wallpaper_dir\""
+        "    \${pkgs.coreutils}/bin/install -m 0600 \\"
+        "      \${chisaPoolAssets}/share/caelestia-chisa-pool/avatar/IMG_5542.jpg \\"
+        "      \"$HOME/.face\""
+        "    \${pkgs.coreutils}/bin/printf '%s' \\"
+        "      '\${chisaPoolAssets}/share/caelestia-chisa-pool/background/chisa-pool-direct.jpg' \\"
+        "      > \"$wallpaper_dir/path.txt\""
+        "    \${pkgs.coreutils}/bin/chmod 0600 \"$wallpaper_dir/path.txt\""
+        "  '';"
+        ""
+      ];
+      profilesBeforeWallpaperPersistence = replaceDelimited
+        "Phase 19C wallpaper persistence correction"
+        "  # Phase 19C wallpaper persistence correction begin\n"
+        "  # Phase 19C wallpaper persistence correction end\n"
+        historicalChisaPoolInitializer
+        currentProfilesSource;
       pre19cProfilesSourceText = builtins.replaceStrings
         [
           "  caelestiaCryoforgeThemeSelector,\n"
@@ -412,7 +447,7 @@
           ""
           ""
         ]
-        currentProfilesSource;
+        profilesBeforeWallpaperPersistence;
       pre19cProfilesSource =
         assert nixpkgs.lib.assertMsg (
           builtins.hashString "sha256" pre19cProfilesSourceText
@@ -709,6 +744,17 @@
               "current CryoForge systems use Phase 19C; Classic, Stock, lock, greeter, and historical systems use accepted boundaries\n";
           selectorQuickshell =
             builtins.head caelestiaCryoforgeThemeSelector.buildInputs;
+          wallpaperStateInitializerActivation =
+            currentCryoforgeHome.home.activation.initialiseChisaPoolTheme.data;
+          wallpaperStateInitializer =
+            assert nixpkgs.lib.hasPrefix
+              "run "
+              wallpaperStateInitializerActivation;
+            nixpkgs.lib.removeSuffix "\n" (
+              nixpkgs.lib.removePrefix
+                "run "
+                wallpaperStateInitializerActivation
+            );
         in
         pkgs.runCommand "phase19c-manual-theme-selection-contract-tests" {
           exportReferencesGraph = [
@@ -747,7 +793,8 @@
             ${currentRealGreeterGreetdUnit}/greetd.service \
             real-greeter-package-closure \
             real-greeter-session-closure \
-            ${selectorQuickshell}
+            ${selectorQuickshell} \
+            ${wallpaperStateInitializer}
           touch "$out"
         '';
       # Phase 19C focused check end

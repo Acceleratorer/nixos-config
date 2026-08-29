@@ -10,6 +10,9 @@ readonly denia_wallpaper=@DENIA_WALLPAPER@
 declare -a snapshot_targets=()
 declare -a snapshot_backups=()
 declare -a snapshot_existed=()
+declare -a snapshot_link_targets=()
+declare -a snapshot_link_values=()
+declare -a snapshot_link_existed=()
 declare -a temporary_files=()
 declare -a created_directories=()
 transaction_committed=false
@@ -90,6 +93,28 @@ snapshot_file() {
   snapshot_existed+=("$existed")
 }
 
+snapshot_link() {
+  local target=$1
+  local parent
+  local value=
+  local existed=false
+
+  parent=$(dirname -- "$target")
+  assert_no_symlink_components "$parent"
+  ensure_directory "$parent"
+
+  if [[ -L "$target" ]]; then
+    value=$(readlink -- "$target")
+    existed=true
+  elif [[ -e "$target" ]]; then
+    fail "expected symbolic link: $target"
+  fi
+
+  snapshot_link_targets+=("$target")
+  snapshot_link_values+=("$value")
+  snapshot_link_existed+=("$existed")
+}
+
 register_temporary() {
   temporary_files+=("$1")
 }
@@ -121,6 +146,19 @@ atomic_write_line() {
   mv -fT -- "$temporary" "$target"
 }
 
+atomic_link() {
+  local value=$1
+  local target=$2
+  local parent
+  local temporary
+
+  parent=$(dirname -- "$target")
+  temporary=$(mktemp "$parent/.$(basename -- "$target").cryoforge-write.XXXXXX")
+  register_temporary "$temporary"
+  ln -sfn -- "$value" "$temporary"
+  mv -fT -- "$temporary" "$target"
+}
+
 maybe_fail() {
   if [[ "${CRYOFORGE_THEME_TEST_FAIL_STEP:-}" == "$1" ]]; then
     fail "injected failure at $1"
@@ -144,6 +182,22 @@ rollback_files() {
     fi
   done
 
+}
+
+rollback_links() {
+  local index
+  local target
+  local value
+
+  set +e
+  for ((index = ${#snapshot_link_targets[@]} - 1; index >= 0; index--)); do
+    target=${snapshot_link_targets[index]}
+    value=${snapshot_link_values[index]}
+    rm -f -- "$target"
+    if [[ "${snapshot_link_existed[index]}" == true ]]; then
+      ln -s -- "$value" "$target"
+    fi
+  done
 }
 
 cleanup_created_directories() {
@@ -177,6 +231,7 @@ finish_transaction() {
 
   trap - EXIT
   if [[ "$transaction_committed" != true ]]; then
+    rollback_links
     rollback_files
   fi
   cleanup_transaction_files
@@ -210,6 +265,7 @@ readonly caelestia_state_dir="$state_home/caelestia"
 readonly scheme_target="$caelestia_state_dir/scheme.json"
 readonly wallpaper_state_dir="$caelestia_state_dir/wallpaper"
 readonly wallpaper_state_target="$wallpaper_state_dir/path.txt"
+readonly wallpaper_link_target="$wallpaper_state_dir/current"
 readonly denia_data_dir="$data_home/cryoforge/theme-packs/cryoforge-denia"
 readonly denia_wallpaper_target="$denia_data_dir/wallpaper.jpg"
 
@@ -236,6 +292,7 @@ else
   snapshot_file "$denia_wallpaper_target"
   snapshot_file "$scheme_target"
   snapshot_file "$wallpaper_state_target"
+  snapshot_link "$wallpaper_link_target"
 
   atomic_install "$denia_wallpaper" "$denia_wallpaper_target"
   copied_sha256=$(sha256sum -- "$denia_wallpaper_target")
@@ -249,6 +306,9 @@ else
 
   atomic_write_line "$denia_wallpaper_target" "$wallpaper_state_target"
   maybe_fail after-wallpaper-state
+
+  atomic_link "$denia_wallpaper_target" "$wallpaper_link_target"
+  maybe_fail after-wallpaper-link
 fi
 
 transaction_committed=true

@@ -19,6 +19,7 @@ real_greetd_unit=${14:?missing corrected rendered greetd unit}
 real_greeter_package_closure=${15:?missing corrected real-greeter package closure}
 real_greeter_session_closure=${16:?missing corrected real-greeter session closure}
 selector_quickshell=${17:?missing pinned selector Quickshell package}
+wallpaper_state_initializer=${18:?missing generated wallpaper state initializer}
 
 runtime_root="$runtime_output/share/cryoforge/theme-runtime"
 helper="$runtime_output/bin/cryoforge-apply-theme-pack"
@@ -64,7 +65,8 @@ for path in \
   "$cli_scheme_root/neutral/dark.txt" \
   "$cli_scheme_root/cryoforge-denia/dark.txt" \
   "$selector_launcher" \
-  "$selector_qt_wrapper"; do
+  "$selector_qt_wrapper" \
+  "$wallpaper_state_initializer"; do
   test -r "$path"
 done
 
@@ -94,6 +96,16 @@ state_fingerprint() {
       sha256sum "$path"
     done
   } | sha256sum | cut -d ' ' -f 1
+}
+
+write_disabled_caelestia_config() {
+  local config_home=$1
+
+  mkdir -p "$config_home/caelestia"
+  printf '%s\n' \
+    '{"theme":{"enableTerm":false,"enableHypr":false,"enableDiscord":false,"enableSpicetify":false,"enablePandora":false,"enableFuzzel":false,"enableBtop":false,"enableNvtop":false,"enableHtop":false,"enableGtk":false,"enableQt":false,"enableWarp":false,"enableChromium":false,"enableZed":false,"enableCava":false}}' \
+    > "$config_home/caelestia/cli.json"
+  chmod 0600 "$config_home/caelestia/cli.json"
 }
 
 assert_custom_scheme() {
@@ -381,6 +393,8 @@ trap 'rm -rf \
   "${concurrency_root:-}" \
   "${empty_failure_root:-}" \
   "${trace_root:-}" \
+  "${startup_root:-}" \
+  "${startup_outside:-}" \
   "${qml_tooling_root:-}" \
   "${qml_engine_root:-}" \
   "${diagnostics:-}"' EXIT
@@ -503,21 +517,20 @@ mkdir -p \
   "$XDG_PICTURES_DIR" \
   "$CAELESTIA_WALLPAPERS_DIR" \
   "$test_root/input"
-printf '%s\n' \
-  '{"theme":{"enableTerm":false,"enableHypr":false,"enableDiscord":false,"enableSpicetify":false,"enablePandora":false,"enableFuzzel":false,"enableBtop":false,"enableNvtop":false,"enableHtop":false,"enableGtk":false,"enableQt":false,"enableWarp":false,"enableChromium":false,"enableZed":false,"enableCava":false}}' \
-  > "$XDG_CONFIG_HOME/caelestia/cli.json"
-chmod 0600 "$XDG_CONFIG_HOME/caelestia/cli.json"
+write_disabled_caelestia_config "$XDG_CONFIG_HOME"
 cp -p "$runtime_root/assets/cryoforge-denia/wallpaper.jpg" \
   "$test_root/input/local-test.jpg"
 chmod 0600 "$test_root/input/local-test.jpg"
 printf '%s\n' 'original-scheme' > "$XDG_STATE_HOME/caelestia/scheme.json"
-printf '%s\n' '/original/wallpaper.jpg' \
+printf '%s\n' "$test_root/input/local-test.jpg" \
   > "$XDG_STATE_HOME/caelestia/wallpaper/path.txt"
+ln -s "$test_root/input/local-test.jpg" \
+  "$XDG_STATE_HOME/caelestia/wallpaper/current"
 
-wallpaper_before=$(sha256 "$XDG_STATE_HOME/caelestia/wallpaper/path.txt")
+wallpaper_before=$(state_fingerprint "$XDG_STATE_HOME/caelestia/wallpaper")
 test "$("$helper" neutral)" = '{"ok":true,"packId":"neutral"}'
 test "$wallpaper_before" = \
-  "$(sha256 "$XDG_STATE_HOME/caelestia/wallpaper/path.txt")"
+  "$(state_fingerprint "$XDG_STATE_HOME/caelestia/wallpaper")"
 grep -Fq '"name":"cryoforge-pack"' \
   "$XDG_STATE_HOME/caelestia/scheme.json"
 grep -Fq '"flavour":"neutral"' \
@@ -568,6 +581,9 @@ denia_target="$XDG_DATA_HOME/cryoforge/theme-packs/cryoforge-denia/wallpaper.jpg
 test "$(sha256 "$denia_target")" = \
   34e9569bd827a07c20715d6b14c09603c60755d4a9d829ed6b542fff6f3fefcb
 test "$(cat "$XDG_STATE_HOME/caelestia/wallpaper/path.txt")" = \
+  "$denia_target"
+test -L "$XDG_STATE_HOME/caelestia/wallpaper/current"
+test "$(readlink "$XDG_STATE_HOME/caelestia/wallpaper/current")" = \
   "$denia_target"
 for file in \
   "$denia_target" \
@@ -691,11 +707,19 @@ chmod 0644 "$XDG_STATE_HOME/caelestia/wallpaper/path.txt"
 for failure_step in \
   after-wallpaper-copy \
   after-scheme \
-  after-wallpaper-state; do
+  after-wallpaper-state \
+  after-wallpaper-link; do
+  printf '%s\n' "$test_root/input/local-test.jpg" \
+    > "$XDG_STATE_HOME/caelestia/wallpaper/path.txt"
+  ln -sfn "$test_root/input/local-test.jpg" \
+    "$XDG_STATE_HOME/caelestia/wallpaper/current"
   cp -p "$denia_target" "$test_root/denia.before"
   cp -p "$XDG_STATE_HOME/caelestia/scheme.json" "$test_root/scheme.before"
   cp -p "$XDG_STATE_HOME/caelestia/wallpaper/path.txt" \
     "$test_root/wallpaper.before"
+  wallpaper_link_before=$(
+    readlink "$XDG_STATE_HOME/caelestia/wallpaper/current"
+  )
   if CRYOFORGE_THEME_TEST_FAIL_STEP="$failure_step" \
     "$helper" cryoforge-denia >/dev/null 2>&1; then
     exit 1
@@ -704,13 +728,16 @@ for failure_step in \
   cmp "$test_root/scheme.before" "$XDG_STATE_HOME/caelestia/scheme.json"
   cmp "$test_root/wallpaper.before" \
     "$XDG_STATE_HOME/caelestia/wallpaper/path.txt"
+  test "$(
+    readlink "$XDG_STATE_HOME/caelestia/wallpaper/current"
+  )" = "$wallpaper_link_before"
   test "$(stat -c '%a' "$denia_target")" = 640
   test "$(stat -c '%a' "$XDG_STATE_HOME/caelestia/scheme.json")" = 640
   test "$(
     stat -c '%a' "$XDG_STATE_HOME/caelestia/wallpaper/path.txt"
   )" = 644
 done
-test -z "$(find "$test_root" -type f \
+test -z "$(find "$test_root" \
   \( -name '*.cryoforge-backup.*' -o -name '*.cryoforge-write.*' \) \
   -print)"
 test ! -e "$XDG_STATE_HOME/caelestia/.cryoforge-theme-apply.lock"
@@ -863,6 +890,252 @@ for file in \
   "$XDG_DATA_HOME/cryoforge/theme-packs/cryoforge-denia/wallpaper.jpg"; do
   test "$(stat -c '%a' "$file")" = 600
 done
+test -L "$XDG_STATE_HOME/caelestia/wallpaper/current"
+test "$(readlink "$XDG_STATE_HOME/caelestia/wallpaper/current")" = \
+  "$XDG_DATA_HOME/cryoforge/theme-packs/cryoforge-denia/wallpaper.jpg"
+
+# Replay the actual generated Home Manager startup/default initializer under
+# isolated HOME and XDG roots. The small reader below faithfully mirrors the
+# shell's non-empty path.txt startup branch without invoking the Caelestia CLI.
+test -x "$wallpaper_state_initializer"
+startup_fallback=$(
+  sed -n "s/^fallback_wallpaper='\\(.*\\)'$/\\1/p" \
+    "$wallpaper_state_initializer"
+)
+test -n "$startup_fallback"
+test "$(sha256 "$startup_fallback")" = \
+  a4dfcf92c4170405ac37102b27c606c5e9b1bb6cd77c9f04d530fa752aab604c
+
+startup_root=$(mktemp -d -t phase19c-startup.XXXXXXXX)
+startup_outside=$(mktemp -d -t phase19c-startup-outside.XXXXXXXX)
+mkdir -p "$startup_outside/state-escape"
+cp -p "$runtime_root/assets/cryoforge-denia/wallpaper.jpg" \
+  "$startup_outside/escape.jpg"
+printf '%s\n' outside > "$startup_outside/path.txt"
+printf '%s\n' untouched > "$startup_outside/state-escape/sentinel"
+startup_outside_before=$(state_fingerprint "$startup_outside")
+
+prepare_startup_root() {
+  local root=$1
+
+  mkdir -p \
+    "$root/home" \
+    "$root/state" \
+    "$root/data" \
+    "$root/config" \
+    "$root/cache" \
+    "$root/pictures" \
+    "$root/wallpapers" \
+    "$root/traces"
+  write_disabled_caelestia_config "$root/config"
+}
+
+run_startup_initializer() {
+  local root=$1
+  local label=$2
+
+  set +e
+  env -u DISPLAY -u WAYLAND_DISPLAY \
+    HOME="$root/home" \
+    XDG_STATE_HOME="$root/state" \
+    XDG_DATA_HOME="$root/data" \
+    XDG_CONFIG_HOME="$root/config" \
+    XDG_CACHE_HOME="$root/cache" \
+    XDG_PICTURES_DIR="$root/pictures" \
+    CAELESTIA_WALLPAPERS_DIR="$root/wallpapers" \
+    PYTHONDONTWRITEBYTECODE=1 \
+    NO_COLOR=1 \
+    strace -f -qq \
+      -e trace=%file \
+      -o "$root/traces/$label.trace" \
+      "$wallpaper_state_initializer" \
+      > "$root/traces/$label.stdout" \
+      2> "$root/traces/$label.stderr"
+  local status=$?
+  set -e
+  printf '%s\n' "$status" > "$root/traces/$label.status"
+  test "$status" -eq 0
+}
+
+run_startup_helper() {
+  local root=$1
+  local label=$2
+  local pack_id=$3
+
+  set +e
+  env -u DISPLAY -u WAYLAND_DISPLAY \
+    HOME="$root/home" \
+    XDG_STATE_HOME="$root/state" \
+    XDG_DATA_HOME="$root/data" \
+    XDG_CONFIG_HOME="$root/config" \
+    XDG_CACHE_HOME="$root/cache" \
+    XDG_PICTURES_DIR="$root/pictures" \
+    CAELESTIA_WALLPAPERS_DIR="$root/wallpapers" \
+    PYTHONDONTWRITEBYTECODE=1 \
+    NO_COLOR=1 \
+    strace -f -qq \
+      -e trace=%file \
+      -o "$root/traces/$label.trace" \
+      "$helper" "$pack_id" \
+      > "$root/traces/$label.stdout" \
+      2> "$root/traces/$label.stderr"
+  local status=$?
+  set -e
+  printf '%s\n' "$status" > "$root/traces/$label.status"
+  test "$status" -eq 0
+  test "$(cat "$root/traces/$label.stdout")" = \
+    "{\"ok\":true,\"packId\":\"$pack_id\"}"
+}
+
+replay_caelestia_startup() {
+  local root=$1
+  local path_file="$root/state/caelestia/wallpaper/path.txt"
+  local selected
+
+  if [ -r "$path_file" ]; then
+    selected=$(cat "$path_file")
+  else
+    selected=
+  fi
+  if [ -z "$selected" ]; then
+    selected=$startup_fallback
+  fi
+  printf '%s\n' "$selected"
+}
+
+assert_startup_wallpaper() {
+  local root=$1
+  local expected=$2
+
+  test "$(cat "$root/state/caelestia/wallpaper/path.txt")" = "$expected"
+  test -L "$root/state/caelestia/wallpaper/current"
+  test "$(readlink "$root/state/caelestia/wallpaper/current")" = "$expected"
+  test "$(replay_caelestia_startup "$root")" = "$expected"
+}
+
+fresh_startup="$startup_root/fresh"
+prepare_startup_root "$fresh_startup"
+run_startup_initializer "$fresh_startup" fresh-state
+assert_startup_wallpaper "$fresh_startup" "$startup_fallback"
+run_startup_initializer "$fresh_startup" fresh-state-replay
+assert_startup_wallpaper "$fresh_startup" "$startup_fallback"
+
+denia_startup="$startup_root/denia"
+prepare_startup_root "$denia_startup"
+run_startup_initializer "$denia_startup" initial-chisa
+run_startup_helper "$denia_startup" apply-denia cryoforge-denia
+startup_denia_target="$denia_startup/data/cryoforge/theme-packs/cryoforge-denia/wallpaper.jpg"
+test "$(sha256 "$startup_denia_target")" = \
+  34e9569bd827a07c20715d6b14c09603c60755d4a9d829ed6b542fff6f3fefcb
+assert_custom_scheme \
+  "$denia_startup/state/caelestia/scheme.json" \
+  "$runtime_root/schemes/cryoforge-denia.json" \
+  cryoforge-denia
+assert_startup_wallpaper "$denia_startup" "$startup_denia_target"
+run_startup_initializer "$denia_startup" user-session-startup-replay
+assert_startup_wallpaper "$denia_startup" "$startup_denia_target"
+run_startup_initializer "$denia_startup" fresh-login-startup
+assert_startup_wallpaper "$denia_startup" "$startup_denia_target"
+assert_custom_scheme \
+  "$denia_startup/state/caelestia/scheme.json" \
+  "$runtime_root/schemes/cryoforge-denia.json" \
+  cryoforge-denia
+
+denia_wallpaper_before=$(
+  state_fingerprint "$denia_startup/state/caelestia/wallpaper"
+)
+run_startup_helper "$denia_startup" apply-neutral neutral
+test "$denia_wallpaper_before" = "$(
+  state_fingerprint "$denia_startup/state/caelestia/wallpaper"
+)"
+assert_startup_wallpaper "$denia_startup" "$startup_denia_target"
+assert_custom_scheme \
+  "$denia_startup/state/caelestia/scheme.json" \
+  "$runtime_root/schemes/neutral.json" \
+  neutral
+run_startup_initializer "$denia_startup" neutral-startup-replay
+assert_startup_wallpaper "$denia_startup" "$startup_denia_target"
+
+missing_startup="$startup_root/invalid-missing"
+prepare_startup_root "$missing_startup"
+mkdir -p "$missing_startup/state/caelestia/wallpaper"
+printf '%s\n' "$missing_startup/data/missing.jpg" \
+  > "$missing_startup/state/caelestia/wallpaper/path.txt"
+run_startup_initializer "$missing_startup" invalid-missing
+assert_startup_wallpaper "$missing_startup" "$startup_fallback"
+
+traversal_startup="$startup_root/invalid-traversal"
+prepare_startup_root "$traversal_startup"
+mkdir -p "$traversal_startup/state/caelestia/wallpaper"
+cp -p "$runtime_root/assets/cryoforge-denia/wallpaper.jpg" \
+  "$traversal_startup/data/traversal.jpg"
+printf '%s\n' "$traversal_startup/data/../data/traversal.jpg" \
+  > "$traversal_startup/state/caelestia/wallpaper/path.txt"
+run_startup_initializer "$traversal_startup" invalid-traversal
+assert_startup_wallpaper "$traversal_startup" "$startup_fallback"
+
+path_symlink_startup="$startup_root/invalid-path-symlink"
+prepare_startup_root "$path_symlink_startup"
+mkdir -p "$path_symlink_startup/state/caelestia/wallpaper"
+ln -s "$startup_outside/path.txt" \
+  "$path_symlink_startup/state/caelestia/wallpaper/path.txt"
+run_startup_initializer "$path_symlink_startup" invalid-path-symlink
+assert_startup_wallpaper "$path_symlink_startup" "$startup_fallback"
+
+target_symlink_startup="$startup_root/invalid-target-symlink"
+prepare_startup_root "$target_symlink_startup"
+mkdir -p "$target_symlink_startup/state/caelestia/wallpaper"
+ln -s "$startup_outside/escape.jpg" \
+  "$target_symlink_startup/data/unsafe.jpg"
+printf '%s\n' "$target_symlink_startup/data/unsafe.jpg" \
+  > "$target_symlink_startup/state/caelestia/wallpaper/path.txt"
+run_startup_initializer "$target_symlink_startup" invalid-target-symlink
+assert_startup_wallpaper "$target_symlink_startup" "$startup_fallback"
+
+state_symlink_startup="$startup_root/invalid-state-symlink"
+mkdir -p \
+  "$state_symlink_startup/home" \
+  "$state_symlink_startup/data" \
+  "$state_symlink_startup/config" \
+  "$state_symlink_startup/cache" \
+  "$state_symlink_startup/pictures" \
+  "$state_symlink_startup/wallpapers" \
+  "$state_symlink_startup/traces"
+write_disabled_caelestia_config "$state_symlink_startup/config"
+ln -s "$startup_outside/state-escape" "$state_symlink_startup/state"
+if env -u DISPLAY -u WAYLAND_DISPLAY \
+  HOME="$state_symlink_startup/home" \
+  XDG_STATE_HOME="$state_symlink_startup/state" \
+  XDG_DATA_HOME="$state_symlink_startup/data" \
+  XDG_CONFIG_HOME="$state_symlink_startup/config" \
+  XDG_CACHE_HOME="$state_symlink_startup/cache" \
+  XDG_PICTURES_DIR="$state_symlink_startup/pictures" \
+  CAELESTIA_WALLPAPERS_DIR="$state_symlink_startup/wallpapers" \
+  PYTHONDONTWRITEBYTECODE=1 \
+  NO_COLOR=1 \
+  "$wallpaper_state_initializer" \
+  > "$state_symlink_startup/traces/invalid-state-symlink.stdout" \
+  2> "$state_symlink_startup/traces/invalid-state-symlink.stderr"; then
+  exit 1
+fi
+
+test "$startup_outside_before" = "$(state_fingerprint "$startup_outside")"
+if grep -R -E -q '/dev/pts/[0-9]+' "$startup_root"; then
+  exit 1
+fi
+if grep -R -n $'\033' "$startup_root" \
+  --include='*.stdout' --include='*.stderr'; then
+  exit 1
+fi
+printf '%s\n' \
+  "phase19c fresh-state Chisa fallback: pass" \
+  "phase19c Denia path.txt/current startup replay persistence: pass" \
+  "phase19c Denia scheme-with-Chisa-wallpaper regression: blocked" \
+  "phase19c Neutral wallpaper preservation: pass" \
+  "phase19c invalid/missing/traversal/symlink state fallback: pass" \
+  "phase19c isolated startup outside-state changes: none" \
+  "phase19c startup numbered PTY access: none" \
+  "phase19c startup terminal escape output: none"
 
 # No extraction, app adapters, config overwrites, or background/network route.
 ! grep -E -i -q \
@@ -1100,6 +1373,7 @@ mkdir -p \
   "$qml_tooling_root/state/local" \
   "$qml_tooling_root/state/runtime"
 chmod 0700 "$qml_tooling_root/state/runtime"
+write_disabled_caelestia_config "$qml_tooling_root/state/config"
 
 set +e
 env -u DISPLAY -u WAYLAND_DISPLAY \
@@ -1449,6 +1723,7 @@ run_qml_engine() {
     "$run_root/state" \
     "$run_root/runtime"
   chmod 0700 "$run_root/runtime"
+  write_disabled_caelestia_config "$run_root/config"
   ln -sfn "$page" "$engine_target"
 
   set +e

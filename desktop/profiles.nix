@@ -890,22 +890,163 @@ let
     fi
   '';
 
+  # Phase 19C wallpaper persistence correction begin
   initialiseChisaPoolState = pkgs.writeShellScript "initialise-chisa-pool-state" ''
     set -eu
 
+    home="''${HOME:?HOME is required}"
     state_home="''${XDG_STATE_HOME:-$HOME/.local/state}"
+    data_home="''${XDG_DATA_HOME:-$HOME/.local/share}"
     state_dir="$state_home/caelestia"
     wallpaper_dir="$state_dir/wallpaper"
+    wallpaper_state="$wallpaper_dir/path.txt"
+    wallpaper_current="$wallpaper_dir/current"
+    fallback_wallpaper='${chisaPoolAssets}/share/caelestia-chisa-pool/background/chisa-pool-direct.jpg'
+    denia_wallpaper="$data_home/cryoforge/theme-packs/cryoforge-denia/wallpaper.jpg"
 
-    ${pkgs.coreutils}/bin/install -d -m 0700 "$state_dir" "$wallpaper_dir"
+    assert_absolute() {
+      case "$1" in
+        /*) ;;
+        *) return 1 ;;
+      esac
+      case "/''${1#/}/" in
+        */../* | */./*) return 1 ;;
+      esac
+    }
+
+    no_symlink_components() {
+      local path=$1
+      local current=/
+      local component
+      local -a components=()
+
+      IFS=/ read -r -a components <<< "''${path#/}"
+      for component in "''${components[@]}"; do
+        [ -n "$component" ] || continue
+        if [ "$current" = / ]; then
+          current="/$component"
+        else
+          current="$current/$component"
+        fi
+        [ ! -L "$current" ] || return 1
+      done
+    }
+
+    ensure_directory() {
+      local path=$1
+      local parent
+
+      no_symlink_components "$path" || return 1
+      if [ -e "$path" ]; then
+        [ -d "$path" ]
+        return
+      fi
+
+      parent="$(${pkgs.coreutils}/bin/dirname -- "$path")"
+      if [ "$parent" != "$path" ] && [ ! -e "$parent" ]; then
+        ensure_directory "$parent" || return 1
+      fi
+      ${pkgs.coreutils}/bin/install -d -m 0700 -- "$path"
+    }
+
+    valid_wallpaper() {
+      local path=$1
+      local actual_sha256
+
+      assert_absolute "$path" || return 1
+      no_symlink_components "$path" || return 1
+      [ -f "$path" ] && [ -r "$path" ] || return 1
+      case "$path" in
+        *.jpg | *.jpeg | *.png | *.webp | *.tif | *.tiff | *.gif) ;;
+        *) return 1 ;;
+      esac
+
+      if [ "$path" = "$denia_wallpaper" ]; then
+        actual_sha256="$(${pkgs.coreutils}/bin/sha256sum -- "$path")"
+        actual_sha256="''${actual_sha256%% *}"
+        [ "$actual_sha256" = \
+          34e9569bd827a07c20715d6b14c09603c60755d4a9d829ed6b542fff6f3fefcb ]
+      fi
+    }
+
+    read_persisted_wallpaper() {
+      local line_count
+      local value
+
+      [ -f "$wallpaper_state" ] && [ ! -L "$wallpaper_state" ] \
+        || return 1
+      line_count="$(${pkgs.coreutils}/bin/wc -l < "$wallpaper_state")"
+      [ "$line_count" -le 1 ] || return 1
+      value="$(${pkgs.coreutils}/bin/cat -- "$wallpaper_state")"
+      [ -n "$value" ] || return 1
+      case "$value" in
+        *$'\n'* | *$'\r'* | *$'\t'* | *$'\033'*) return 1 ;;
+      esac
+      valid_wallpaper "$value" || return 1
+      ${pkgs.coreutils}/bin/printf '%s\n' "$value"
+    }
+
+    atomic_write_wallpaper() {
+      local value=$1
+      local temporary
+
+      temporary="$(${pkgs.coreutils}/bin/mktemp \
+        "$wallpaper_dir/.path.txt.XXXXXXXX")"
+      ${pkgs.coreutils}/bin/printf '%s\n' "$value" > "$temporary"
+      ${pkgs.coreutils}/bin/chmod 0600 "$temporary"
+      ${pkgs.coreutils}/bin/mv -fT -- "$temporary" "$wallpaper_state"
+    }
+
+    materialise_current_wallpaper() {
+      local value=$1
+      local temporary
+
+      if [ -L "$wallpaper_current" ] \
+        && [ "$(${pkgs.coreutils}/bin/readlink -- "$wallpaper_current")" = \
+          "$value" ]; then
+        return
+      fi
+      if [ -e "$wallpaper_current" ] \
+        && [ ! -L "$wallpaper_current" ] \
+        && [ ! -f "$wallpaper_current" ]; then
+        return 1
+      fi
+
+      temporary="$(${pkgs.coreutils}/bin/mktemp \
+        "$wallpaper_dir/.current.XXXXXXXX")"
+      ${pkgs.coreutils}/bin/ln -sfn -- "$value" "$temporary"
+      ${pkgs.coreutils}/bin/mv -fT -- "$temporary" "$wallpaper_current"
+    }
+
+    assert_absolute "$home"
+    assert_absolute "$state_home"
+    assert_absolute "$data_home"
+    ensure_directory "$home"
+    ensure_directory "$state_dir"
+    ensure_directory "$wallpaper_dir"
+
+    if [ -L "$home/.face" ]; then
+      exit 1
+    fi
     ${pkgs.coreutils}/bin/install -m 0600 \
       ${chisaPoolAssets}/share/caelestia-chisa-pool/avatar/IMG_5542.jpg \
-      "$HOME/.face"
-    ${pkgs.coreutils}/bin/printf '%s' \
-      '${chisaPoolAssets}/share/caelestia-chisa-pool/background/chisa-pool-direct.jpg' \
-      > "$wallpaper_dir/path.txt"
-    ${pkgs.coreutils}/bin/chmod 0600 "$wallpaper_dir/path.txt"
+      "$home/.face"
+
+    if wallpaper="$(read_persisted_wallpaper)"; then
+      ${pkgs.coreutils}/bin/chmod 0600 "$wallpaper_state"
+    else
+      if [ -e "$wallpaper_state" ] \
+        && [ ! -L "$wallpaper_state" ] \
+        && [ ! -f "$wallpaper_state" ]; then
+        exit 1
+      fi
+      valid_wallpaper "$fallback_wallpaper"
+      wallpaper="$fallback_wallpaper"
+      atomic_write_wallpaper "$wallpaper"
+    fi
+    materialise_current_wallpaper "$wallpaper"
   '';
+  # Phase 19C wallpaper persistence correction end
 
   startClassicFallback = pkgs.writeShellScript "start-classic-fallback" ''
     exec ${pkgs.systemd}/bin/systemctl \
