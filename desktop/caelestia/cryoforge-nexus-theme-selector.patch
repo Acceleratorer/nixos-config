@@ -1,0 +1,91 @@
+diff --git a/services/Colours.qml b/services/Colours.qml
+index 3391ab8..e360d57 100644
+--- a/services/Colours.qml
++++ b/services/Colours.qml
+@@ -13,6 +13,7 @@ Singleton {
+     id: root
+
+     property bool showPreview
++    property string cryoforgePackId
+     property string scheme
+     property string flavour
+     readonly property bool light: showPreview ? previewLight : currentLight
+@@ -67,6 +68,7 @@ Singleton {
+             root.scheme = scheme.name;
+             flavour = scheme.flavour;
+             currentLight = scheme.mode === "light";
++            cryoforgePackId = scheme.cryoforge?.packId ?? "";
+         } else {
+             previewLight = scheme.mode === "light";
+         }
+diff --git a/modules/nexus/common/PageBase.qml b/modules/nexus/common/PageBase.qml
+index 952b3da..701e3c4 100644
+--- a/modules/nexus/common/PageBase.qml
++++ b/modules/nexus/common/PageBase.qml
+@@ -15,6 +15,7 @@ ColumnLayout {
+     required property string title
+     required property NexusState nState
+     property bool isSubPage
++    property bool subPageCloseEnabled: true
+     readonly property int cappedWidth: Math.min(Tokens.sizes.nexus.maxContentWidth, width)
+     readonly property alias flickable: flickable
+
+@@ -45,6 +46,7 @@ ColumnLayout {
+                     isRound: true
+                     inactiveColour: Colours.tPalette.m3surfaceContainerHigh
+                     inactiveOnColour: Colours.palette.m3onSurfaceVariant
++                    disabled: !root.subPageCloseEnabled
+                     onClicked: root.nState.closeSubPage()
+                 }
+             }
+diff --git a/modules/nexus/PageCompRegistry.qml b/modules/nexus/PageCompRegistry.qml
+index 107ed1a..7c8e85e 100644
+--- a/modules/nexus/PageCompRegistry.qml
++++ b/modules/nexus/PageCompRegistry.qml
+@@ -47,7 +47,7 @@ QtObject {
+                     ChisaPresetGallery {}
+                 }
+                 Component {
+-                    ColourSelect {}
++                    ThemePackGallery {}
+                 }
+             }
+         },
+diff --git a/modules/nexus/pages/WallpaperAndStyle.qml b/modules/nexus/pages/WallpaperAndStyle.qml
+index c63cd8e..da6d2d4 100644
+--- a/modules/nexus/pages/WallpaperAndStyle.qml
++++ b/modules/nexus/pages/WallpaperAndStyle.qml
+@@ -172,11 +172,11 @@ PageBase {
+             IconTextButton {
+-                icon: "palette"
+-                text: qsTr("Colours")
++                icon: "style"
++                text: qsTr("Theme packs")
+                 font: Tokens.font.body.large
+                 isRound: true
+                 shapeMorph: true
+                 type: IconTextButton.Tonal
+                 horizontalPadding: Tokens.padding.extraLarge
+                 verticalPadding: Tokens.padding.medium
+-                onClicked: root.nState.openSubPage(4) // Colours page
++                onClicked: root.nState.openSubPage(4) // Theme pack gallery
+             }
+@@ -186,13 +186,14 @@ PageBase {
+             onToggled: GlobalConfig.appearance.transparency.enabled = checked
+         }
+
+-        ToggleRow {
++        InfoRow {
+             Layout.topMargin: Tokens.spacing.extraSmall / 2 - parent.spacing
+
+             last: true
+-            text: qsTr("Dark theme")
+-            checked: !Colours.light
+-            onToggled: Colours.setMode(checked ? "dark" : "light")
++            icon: "dark_mode"
++            label: qsTr("Dark theme")
++            subtext: qsTr("CryoForge theme packs use curated dark-only palettes.")
++            value: qsTr("Always on")
+         }
+     }
+ }

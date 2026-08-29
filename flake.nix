@@ -30,6 +30,7 @@
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
       mkNixos = {
+        cryoforgePackage ? caelestiaCryoforgeThemeSelector,
         desktopProfile ? "classic",
         extraModules ? [ ],
         extraSpecialArgs ? { },
@@ -44,7 +45,12 @@
               {
                 home-manager = {
                   extraSpecialArgs = {
-                    inherit caelestia-dots caelestia-shell desktopProfile;
+                    inherit
+                      caelestia-dots
+                      caelestia-shell
+                      desktopProfile
+                      ;
+                    caelestiaCryoforgeThemeSelector = cryoforgePackage;
                   };
                   useGlobalPkgs = true;
                   users.accelra = import ./home.nix;
@@ -59,10 +65,12 @@
       caelestiaChisaPool =
         pkgs.callPackage ./packages/caelestia-chisa-pool.nix { };
       caelestiaRealGreeter =
-        pkgs.callPackage ./packages/caelestia-real-greeter.nix {
-          inherit caelestia-shell;
-          caelestiaChisaPool = caelestiaChisaPool;
-        };
+        pkgs.callPackage
+          (realGreeterSourceBoundary + "/packages/caelestia-real-greeter.nix")
+          {
+            inherit caelestia-shell;
+            caelestiaChisaPool = caelestiaChisaPool;
+          };
       caelestiaCryoforge =
         pkgs.callPackage ./packages/caelestia-cryoforge.nix {
           inherit caelestia-shell;
@@ -98,13 +106,32 @@
           version = "1.0.0";
           includeCuratedAssets = false;
         };
+      upstreamCaelestiaCli =
+        caelestia-shell.inputs.caelestia-cli.packages.${system}.default;
+      cryoforgeThemeRuntime =
+        pkgs.callPackage ./packages/cryoforge-theme-runtime.nix {
+          caelestiaCli = upstreamCaelestiaCli;
+          inherit cryoforgeThemePacks;
+          registry = currentThemeRegistry;
+        };
+      cryoforgeCaelestiaCli = cryoforgeThemeRuntime.caelestiaCli;
+      caelestiaCryoforgeThemeSelector =
+        pkgs.callPackage ./packages/caelestia-cryoforge-theme-selector.nix {
+          caelestiaShellCryoforge = caelestiaCryoforge;
+          inherit
+            cryoforgeCaelestiaCli
+            cryoforgeThemeRuntime
+            upstreamCaelestiaCli
+            ;
+        };
       cryoforgeSystem = mkNixos {
         desktopProfile = "caelestia-cryoforge";
       };
       realGreeterSystem = mkNixos {
         desktopProfile = "caelestia-cryoforge";
         extraModules = [
-          ./desktop/caelestia/real-greeter-system.nix
+          (realGreeterSourceBoundary
+            + "/desktop/caelestia/real-greeter-system.nix")
           {
             # This dedicated audition output must replace the running ReGreet
             # command. The accepted CryoForge output retains greetd's normal
@@ -118,21 +145,38 @@
         ];
         extraSpecialArgs = { inherit caelestia-shell; };
       };
-      recoveryGreeter = cryoforgeSystem.config.programs.regreet.package;
-      cryoforgeCommand = cryoforgeSystem.config.services.greetd.settings.default_session.command;
-      realGreeterCommand = realGreeterSystem.config.services.greetd.settings.default_session.command;
-      cryoforgeGreetdUnit = cryoforgeSystem.config.systemd.units."greetd.service".unit;
-      realGreeterGreetdUnit = realGreeterSystem.config.systemd.units."greetd.service".unit;
+      cryoforgeSystemPre19c = mkNixos {
+        cryoforgePackage = caelestiaCryoforge;
+        desktopProfile = "caelestia-cryoforge";
+      };
+      realGreeterSystemPre19c = mkNixos {
+        cryoforgePackage = caelestiaCryoforge;
+        desktopProfile = "caelestia-cryoforge";
+        extraModules = [
+          (realGreeterSourceBoundary
+            + "/desktop/caelestia/real-greeter-system.nix")
+          {
+            systemd.services.greetd.restartIfChanged = nixpkgs.lib.mkForce true;
+            systemd.services.greetd.stopIfChanged = nixpkgs.lib.mkForce false;
+          }
+        ];
+        extraSpecialArgs = { inherit caelestia-shell; };
+      };
+      recoveryGreeter = cryoforgeSystemPre19c.config.programs.regreet.package;
+      cryoforgeCommand = cryoforgeSystemPre19c.config.services.greetd.settings.default_session.command;
+      realGreeterCommand = realGreeterSystemPre19c.config.services.greetd.settings.default_session.command;
+      cryoforgeGreetdUnit = cryoforgeSystemPre19c.config.systemd.units."greetd.service".unit;
+      realGreeterGreetdUnit = realGreeterSystemPre19c.config.systemd.units."greetd.service".unit;
       realGreeterSessionData = builtins.head (
         nixpkgs.lib.splitString ":"
-          realGreeterSystem.config.systemd.services.greetd.environment.XDG_DATA_DIRS
+          realGreeterSystemPre19c.config.systemd.services.greetd.environment.XDG_DATA_DIRS
       );
       expectedCryoforgeCommand = nixpkgs.lib.escapeShellArgs (
         [
           "${pkgs.dbus}/bin/dbus-run-session"
           "${pkgs.cage}/bin/cage"
         ]
-        ++ cryoforgeSystem.config.programs.regreet.cageArgs
+        ++ cryoforgeSystemPre19c.config.programs.regreet.cageArgs
         ++ [
           "--"
           "${nixpkgs.lib.getExe recoveryGreeter}"
@@ -152,7 +196,7 @@
         nixpkgs.lib.removeSuffix "\n" (
           nixpkgs.lib.removePrefix "run " activation
         );
-      targetSeedScript = activationSeedScript realGreeterSystem;
+      targetSeedScript = activationSeedScript realGreeterSystemPre19c;
       stockSeedScript = activationSeedScript stockSystem;
       replaceExactly = label: needle: replacement: value:
         let
@@ -162,7 +206,117 @@
           builtins.length parts == 2
         ) "${label} must match exactly once";
         nixpkgs.lib.concatStringsSep replacement parts;
-      # R3 historical projection begin
+      # Phase 19C historical projection begin
+      phase19cDirtyPathSet = {
+        "desktop/caelestia/cryoforge-nexus-theme-selector.patch" = true;
+        "desktop/caelestia/nexus/ThemePackGallery.qml" = true;
+        "desktop/profiles.nix" = true;
+        "desktop/themes/apply-theme-pack.sh" = true;
+        "desktop/themes/caelestia-schemes.nix" = true;
+        "flake.nix" = true;
+        "packages/caelestia-cryoforge-theme-selector.nix" = true;
+        "packages/cryoforge-theme-runtime.nix" = true;
+        "tests/phase19c/test_manual_theme_selection_contract.sh" = true;
+      };
+      phase19cDirtyPaths = builtins.attrNames phase19cDirtyPathSet;
+      expectedPhase19cDirtyPaths = [
+        "desktop/caelestia/cryoforge-nexus-theme-selector.patch"
+        "desktop/caelestia/nexus/ThemePackGallery.qml"
+        "desktop/profiles.nix"
+        "desktop/themes/apply-theme-pack.sh"
+        "desktop/themes/caelestia-schemes.nix"
+        "flake.nix"
+        "packages/caelestia-cryoforge-theme-selector.nix"
+        "packages/cryoforge-theme-runtime.nix"
+        "tests/phase19c/test_manual_theme_selection_contract.sh"
+      ];
+      realGreeterSourceRoot = toString ./.;
+      realGreeterSourceRootPrefix = "${realGreeterSourceRoot}/";
+      realGreeterRelativePath = path:
+        let
+          value = toString path;
+        in
+        if value == realGreeterSourceRoot
+        then ""
+        else nixpkgs.lib.removePrefix realGreeterSourceRootPrefix value;
+      uncheckedRealGreeterSourceBoundary = builtins.path {
+        name = "nixos-config-real-greeter-r3-source";
+        path = ./.;
+        filter = path: type:
+          !(builtins.hasAttr
+            (realGreeterRelativePath path)
+            phase19cDirtyPathSet);
+      };
+      requiredRealGreeterR3Files = [
+        "packages/caelestia-chisa-pool.nix"
+        "packages/caelestia-real-greeter.nix"
+        "desktop/caelestia/chisa-pool/CachingImage.qml"
+        "desktop/caelestia/chisa-pool/IMG_5542.jpg"
+        "desktop/caelestia/chisa-pool/chisa-pool-direct.jpg"
+        "desktop/caelestia/chisa-pool/theme.json"
+        "desktop/caelestia/real-greeter-system.nix"
+        "desktop/caelestia/real-greeter-controller-test.qml"
+        "desktop/caelestia/real-greeter-preview.qml"
+        "desktop/caelestia/real-lock-preview.qml"
+        "desktop/caelestia/real-greeter/GreeterContent.qml"
+        "desktop/caelestia/real-greeter/GreeterLock.qml"
+        "desktop/caelestia/real-greeter/GreeterSurface.qml"
+        "desktop/caelestia/real-greeter/Pam.qml"
+        "desktop/caelestia/real-greeter/adapters/GreetdController.qml"
+        "desktop/caelestia/real-greeter/assets/scheme.json"
+        "desktop/caelestia/real-greeter/assets/shell-tokens.json"
+        "desktop/caelestia/real-greeter/assets/shell.json"
+        "desktop/caelestia/real-greeter/greeter.qml"
+        "desktop/caelestia/real-greeter/launch-runtime.sh"
+        "desktop/caelestia/real-greeter/phase13b-audition.sh"
+        "desktop/caelestia/real-greeter/recovery-launcher.sh"
+        "desktop/caelestia/real-greeter/services/Hypr.qml"
+        "desktop/caelestia/real-greeter/services/NotifData.qml"
+        "desktop/caelestia/real-greeter/services/Notifs.qml"
+        "desktop/caelestia/real-greeter/services/Players.qml"
+        "desktop/caelestia/real-greeter/services/Wallpapers.qml"
+        "desktop/caelestia/real-greeter/services/Weather.qml"
+        "desktop/caelestia/real-greeter/tests/fake_greetd_protocol.py"
+      ];
+      realGreeterR3FileHashes = {
+        "packages/caelestia-chisa-pool.nix" =
+          "b0440ccbe892d4123d36e0fe1d29c8954ca8dbedf0fd5767eda2861e9c34e9b2";
+        "packages/caelestia-real-greeter.nix" =
+          "795a7009c6a8d52db1d3d1aec4c243ee6bcbac6486eb4cf2bdcccb4bad0ce17a";
+        "desktop/caelestia/real-greeter-system.nix" =
+          "8415f438e88ae97eb47ff916fd8c97ed15ada5131cb47b0ccd5a71a5ebb8f078";
+        "desktop/caelestia/real-greeter/launch-runtime.sh" =
+          "9fcc170e48e9758303195cb060a8ba1f32768bf6d0a40b762fdd2d773e07929d";
+        "desktop/caelestia/real-greeter/recovery-launcher.sh" =
+          "2fcc2cb093f169c6567fb092e1f47863fc06023161b8514d0834cc316d12824a";
+      };
+      realGreeterSourceBoundary =
+        assert nixpkgs.lib.assertMsg (
+          phase19cDirtyPaths == expectedPhase19cDirtyPaths
+        ) "The real-greeter exclusion set must equal the nine Phase 19C paths";
+        assert nixpkgs.lib.assertMsg (
+          nixpkgs.lib.all
+            (relative:
+              builtins.pathExists
+                (uncheckedRealGreeterSourceBoundary + "/${relative}"))
+            requiredRealGreeterR3Files
+        ) "The real-greeter source boundary is missing required R3 files";
+        assert nixpkgs.lib.assertMsg (
+          nixpkgs.lib.all
+            (relative:
+              !(builtins.pathExists
+                (uncheckedRealGreeterSourceBoundary + "/${relative}")))
+            phase19cDirtyPaths
+        ) "The real-greeter source boundary retained a Phase 19C dirty path";
+        assert nixpkgs.lib.assertMsg (
+          nixpkgs.lib.all
+            (relative:
+              builtins.hashFile "sha256"
+                (uncheckedRealGreeterSourceBoundary + "/${relative}")
+              == realGreeterR3FileHashes.${relative})
+            (builtins.attrNames realGreeterR3FileHashes)
+        ) "The real-greeter source boundary changed protected R3 content";
+        uncheckedRealGreeterSourceBoundary;
       removeDelimited = label: start: end: value:
         let
           startParts = nixpkgs.lib.splitString start value;
@@ -173,40 +327,100 @@
           && builtins.length endParts == 2
         ) "${label} markers must occur exactly once";
         builtins.head startParts + builtins.elemAt endParts 1;
-      r3ProjectionStart =
-        "      # R3 historical projection begin\n";
-      r3ProjectionEnd =
-        "      # R3 historical projection end\n";
+      phase19cProjectionStart =
+        "      # Phase 19C historical projection begin\n";
+      phase19cProjectionEnd =
+        "      # Phase 19C historical projection end\n";
+      phase19cCheckStart =
+        "      # Phase 19C focused check begin\n";
+      phase19cCheckEnd =
+        "      # Phase 19C focused check end\n";
       currentFlakeSource = builtins.readFile ./flake.nix;
-      flakeWithoutR3Projection = removeDelimited
-        "R3 historical projection"
-        r3ProjectionStart
-        r3ProjectionEnd
+      flakeWithoutProjection = removeDelimited
+        "Phase 19C historical projection"
+        phase19cProjectionStart
+        phase19cProjectionEnd
         currentFlakeSource;
-      preR3FlakeSourceText = builtins.replaceStrings
+      flakeWithoutPhase19cCheck = removeDelimited
+        "Phase 19C focused check"
+        phase19cCheckStart
+        phase19cCheckEnd
+        flakeWithoutProjection;
+      pre19cFlakeSourceText = builtins.replaceStrings
         [
-          "\${r3HistoricalSourceProjection}/desktop/caelestia/real-greeter-system.nix"
-          "\${r3HistoricalSourceProjection}/desktop/caelestia/real-greeter"
-          "\${r3HistoricalSourceProjection}/flake.nix"
-          "\${r3HistoricalSourceProjection}"
-          "        assert realGreeterSystem.config.systemd.services.greetd.serviceConfig.Restart == \"always\";\n"
+          "      caelestiaRealGreeter =\n        pkgs.callPackage\n          (realGreeterSourceBoundary + \"/packages/caelestia-real-greeter.nix\")\n          {\n            inherit caelestia-shell;\n            caelestiaChisaPool = caelestiaChisaPool;\n          };\n"
+          "(realGreeterSourceBoundary\n            + \"/desktop/caelestia/real-greeter-system.nix\")"
+          "        cryoforgePackage ? caelestiaCryoforgeThemeSelector,\n"
+          "                  extraSpecialArgs = {\n                    inherit\n                      caelestia-dots\n                      caelestia-shell\n                      desktopProfile\n                      ;\n                    caelestiaCryoforgeThemeSelector = cryoforgePackage;\n                  };\n"
+          "      upstreamCaelestiaCli =\n        caelestia-shell.inputs.caelestia-cli.packages.\${system}.default;\n      cryoforgeThemeRuntime =\n        pkgs.callPackage ./packages/cryoforge-theme-runtime.nix {\n          caelestiaCli = upstreamCaelestiaCli;\n          inherit cryoforgeThemePacks;\n          registry = currentThemeRegistry;\n        };\n      cryoforgeCaelestiaCli = cryoforgeThemeRuntime.caelestiaCli;\n      caelestiaCryoforgeThemeSelector =\n        pkgs.callPackage ./packages/caelestia-cryoforge-theme-selector.nix {\n          caelestiaShellCryoforge = caelestiaCryoforge;\n          inherit\n            cryoforgeCaelestiaCli\n            cryoforgeThemeRuntime\n            upstreamCaelestiaCli\n            ;\n        };\n"
+          "      cryoforgeSystemPre19c = mkNixos {\n        cryoforgePackage = caelestiaCryoforge;\n        desktopProfile = \"caelestia-cryoforge\";\n      };\n      realGreeterSystemPre19c = mkNixos {\n        cryoforgePackage = caelestiaCryoforge;\n        desktopProfile = \"caelestia-cryoforge\";\n        extraModules = [\n          (realGreeterSourceBoundary\n            + \"/desktop/caelestia/real-greeter-system.nix\")\n          {\n            systemd.services.greetd.restartIfChanged = nixpkgs.lib.mkForce true;\n            systemd.services.greetd.stopIfChanged = nixpkgs.lib.mkForce false;\n          }\n        ];\n        extraSpecialArgs = { inherit caelestia-shell; };\n      };\n"
+          "      caelestia-shell-cryoforge-theme-selector = caelestiaCryoforgeThemeSelector;\n"
+          "      caelestia-cli-cryoforge = cryoforgeCaelestiaCli;\n"
+          "      cryoforge-theme-runtime = cryoforgeThemeRuntime;\n"
+          "      phase19c-pre19c-source = phase19cSourceProjection;\n"
+          "      inherit caelestiaRealGreeter;\n\n\n      phase19a-theme-pack-foundation-contract"
+          "\${phase19cSourceProjection}/desktop/profiles.nix"
+          "\${phase19cSourceProjection}/flake.nix"
+          "\${phase19cSourceProjection}/desktop/caelestia/real-greeter-system.nix"
+          "\${phase19cSourceProjection}/desktop/caelestia/real-greeter"
+          "\${phase19cSourceProjection}"
+          "realGreeterSystemPre19c"
+          "cryoforgeSystemPre19c"
+          "        assert realGreeterSystemPre19c.config.systemd.services.greetd.serviceConfig.Restart == \"always\";\n"
           "          grep -Fqx 'Restart=always' \${realGreeterGreetdUnit}/greetd.service\n"
         ]
         [
+          "      caelestiaRealGreeter =\n        pkgs.callPackage ./packages/caelestia-real-greeter.nix {\n          inherit caelestia-shell;\n          caelestiaChisaPool = caelestiaChisaPool;\n        };\n"
+          "./desktop/caelestia/real-greeter-system.nix"
+          ""
+          "                  extraSpecialArgs = {\n                    inherit caelestia-dots caelestia-shell desktopProfile;\n                  };\n"
+          ""
+          ""
+          ""
+          ""
+          ""
+          ""
+          "      inherit caelestiaRealGreeter;\n\n      phase19a-theme-pack-foundation-contract"
+          "\${./desktop/profiles.nix}"
+          "\${./flake.nix}"
           "\${./desktop/caelestia/real-greeter-system.nix}"
           "\${./desktop/caelestia/real-greeter}"
-          "\${./flake.nix}"
           "\${./.}"
+          "realGreeterSystem"
+          "cryoforgeSystem"
           ""
           ""
         ]
-        flakeWithoutR3Projection;
-      preR3FlakeSource =
+        flakeWithoutPhase19cCheck;
+      pre19cFlakeSource =
         assert nixpkgs.lib.assertMsg (
-          builtins.hashString "sha256" preR3FlakeSourceText
+          builtins.hashString "sha256" pre19cFlakeSourceText
           == "a99978a6c7475c4cf80c34083fd4d1a67c87f19730487b576187fe1d97e91244"
-        ) "Pre-R3 flake projection changed historical content";
-        builtins.toFile "r3-pre-r3-flake.nix" preR3FlakeSourceText;
+        ) "Pre-Phase-19C flake projection changed historical content";
+        builtins.toFile "phase19c-pre19c-flake.nix" pre19cFlakeSourceText;
+      currentProfilesSource = builtins.readFile ./desktop/profiles.nix;
+      pre19cProfilesSourceText = builtins.replaceStrings
+        [
+          "  caelestiaCryoforgeThemeSelector,\n"
+          "  cryoforgeCaelestiaPackage = caelestiaCryoforgeThemeSelector;\n"
+          "  cryoforgeCaelestiaCli =\n    if caelestiaCryoforgeThemeSelector ? caelestiaCli\n    then caelestiaCryoforgeThemeSelector.caelestiaCli\n    else null;\n"
+          "        package = lib.mkIf (\n          isCryoforge && cryoforgeCaelestiaCli != null\n        ) cryoforgeCaelestiaCli;\n"
+        ]
+        [
+          ""
+          "  cryoforgeCaelestiaPackage = pkgs.callPackage ../packages/caelestia-cryoforge.nix {\n    inherit caelestia-shell;\n    caelestiaChisaPool = chisaPoolAssets;\n  };\n"
+          ""
+          ""
+        ]
+        currentProfilesSource;
+      pre19cProfilesSource =
+        assert nixpkgs.lib.assertMsg (
+          builtins.hashString "sha256" pre19cProfilesSourceText
+          == "9de59b0dca05eb17df9b8452472b353f12ec8cdc48de1bcd93c1f1c86d1c433e"
+        ) "Pre-Phase-19C profile projection changed historical content";
+        builtins.toFile
+          "phase19c-pre19c-profiles.nix"
+          pre19cProfilesSourceText;
       currentRealGreeterSystemSource =
         builtins.readFile ./desktop/caelestia/real-greeter-system.nix;
       preR3RealGreeterSystemSourceText =
@@ -227,7 +441,7 @@
           == "e63487de3f193c738a13bb4429b6bc83c01f73767de81057cb1e1ead58f99ce3"
         ) "Pre-R3 real-greeter system projection changed historical content";
         builtins.toFile
-          "r3-pre-r3-real-greeter-system.nix"
+          "phase19c-pre-r3-real-greeter-system.nix"
           preR3RealGreeterSystemSourceText;
       currentRecoveryLauncherSource =
         builtins.readFile ./desktop/caelestia/real-greeter/recovery-launcher.sh;
@@ -275,7 +489,7 @@
           == "b9c45baa3af6c00b465b01eb88bcf98ce9aa613d35b0aa8d7359f13278e2961c"
         ) "Pre-R3 recovery launcher projection changed historical content";
         builtins.toFile
-          "r3-pre-r3-recovery-launcher.sh"
+          "phase19c-pre-r3-recovery-launcher.sh"
           preR3RecoveryLauncherSourceText;
       currentRecoveryLauncherTestSource =
         builtins.readFile ./desktop/caelestia/real-greeter/tests/recovery_launcher_test.sh;
@@ -297,14 +511,25 @@
           == "2d152de7ae38ff3e5c5c404db7e82b12faf5ba73a8c45daf83684a7f1d8c1d56"
         ) "Pre-R3 recovery launcher test projection changed historical content";
         builtins.toFile
-          "r3-pre-r3-recovery-launcher-test.sh"
+          "phase19c-pre-r3-recovery-launcher-test.sh"
           preR3RecoveryLauncherTestSourceText;
-      r3HistoricalSourceProjection =
-        pkgs.runCommand "r3-historical-source-projection" { } ''
+      phase19cSourceProjection =
+        pkgs.runCommand "phase19c-pre19c-source-projection" { } ''
           mkdir -p "$out"
           cp -R ${./.}/. "$out/"
           chmod -R u+w "$out"
-          install -m 0444 ${preR3FlakeSource} "$out/flake.nix"
+          rm -rf \
+            "$out/desktop/caelestia/cryoforge-nexus-theme-selector.patch" \
+            "$out/desktop/caelestia/nexus/ThemePackGallery.qml" \
+            "$out/desktop/themes/apply-theme-pack.sh" \
+            "$out/desktop/themes/caelestia-schemes.nix" \
+            "$out/packages/caelestia-cryoforge-theme-selector.nix" \
+            "$out/packages/cryoforge-theme-runtime.nix" \
+            "$out/tests/phase19c"
+          install -m 0444 ${pre19cFlakeSource} "$out/flake.nix"
+          install -m 0444 \
+            ${pre19cProfilesSource} \
+            "$out/desktop/profiles.nix"
           install -m 0444 \
             ${preR3RealGreeterSystemSource} \
             "$out/desktop/caelestia/real-greeter-system.nix"
@@ -315,7 +540,7 @@
             ${preR3RecoveryLauncherTestSource} \
             "$out/desktop/caelestia/real-greeter/tests/recovery_launcher_test.sh"
         '';
-      # R3 historical projection end
+      # Phase 19C historical projection end
       phase19aRegistrySourceText =
         replaceExactly
           "Phase 19A registry"
@@ -333,7 +558,7 @@
       phase19aSourceProjection =
         pkgs.runCommand "phase19a-theme-pack-source-projection" { } ''
           mkdir -p "$out"
-          cp -R ${r3HistoricalSourceProjection}/. "$out/"
+          cp -R ${phase19cSourceProjection}/. "$out/"
           chmod -R u+w "$out/desktop/themes" "$out/tests"
           rm -rf \
             "$out/desktop/themes/cryoforge-denia" \
@@ -405,15 +630,127 @@
     packages.${system} = {
       caelestia-chisa-pool = caelestiaChisaPool;
       caelestia-chisa-pool-previews = caelestiaChisaPoolPreviews;
+      caelestia-cli-cryoforge = cryoforgeCaelestiaCli;
       caelestia-shell-cryoforge = caelestiaCryoforge;
+      caelestia-shell-cryoforge-theme-selector = caelestiaCryoforgeThemeSelector;
       caelestia-real-greeter = caelestiaRealGreeter;
       caelestia-real-lock = caelestiaRealLock;
+      cryoforge-theme-runtime = cryoforgeThemeRuntime;
       cryoforge-theme-packs = cryoforgeThemePacks;
       hyprexpo = pkgs.callPackage ./packages/hyprexpo.nix { };
     };
 
     checks.${system} = {
       inherit caelestiaRealGreeter;
+
+      # Phase 19C focused check begin
+      phase19c-manual-theme-selection-contract =
+        let
+          currentCryoforgeHome =
+            cryoforgeSystem.config.home-manager.users.accelra;
+          currentRealGreeterHome =
+            realGreeterSystem.config.home-manager.users.accelra;
+          currentRealGreeterCommand =
+            realGreeterSystem.config.services.greetd.settings
+              .default_session.command;
+          currentRealGreeterGreetdUnit =
+            realGreeterSystem.config.systemd.units."greetd.service".unit;
+          currentRealGreeterPackages = builtins.filter
+            (package:
+              (package.pname or null) == "caelestia-real-greeter")
+            realGreeterSystem.config.environment.systemPackages;
+          historicalCryoforgeHome =
+            cryoforgeSystemPre19c.config.home-manager.users.accelra;
+          historicalRealGreeterHome =
+            realGreeterSystemPre19c.config.home-manager.users.accelra;
+          stockHome = stockSystem.config.home-manager.users.accelra;
+          classicHome = classicSystem.config.home-manager.users.accelra;
+          selectorPatchOrder = map builtins.baseNameOf
+            caelestiaCryoforgeThemeSelector.patches;
+          boundaryEvidence =
+            assert currentCryoforgeHome.programs.caelestia.package
+              == caelestiaCryoforgeThemeSelector;
+            assert currentCryoforgeHome.programs.caelestia.cli.package
+              == cryoforgeCaelestiaCli;
+            assert currentRealGreeterHome.programs.caelestia.package
+              == caelestiaCryoforgeThemeSelector;
+            assert currentRealGreeterHome.programs.caelestia.cli.package
+              == cryoforgeCaelestiaCli;
+            assert builtins.length currentRealGreeterPackages == 1;
+            assert builtins.head currentRealGreeterPackages
+              == caelestiaRealGreeter;
+            assert realGreeterSystem.config.services.greetd.restart;
+            assert realGreeterSystem.config.systemd.services.greetd
+              .restartIfChanged;
+            assert !realGreeterSystem.config.systemd.services.greetd
+              .stopIfChanged;
+            assert realGreeterSystem.config.systemd.services.greetd
+              .serviceConfig.Restart == "always";
+            assert caelestiaCryoforgeThemeSelector.caelestiaCli
+              == cryoforgeCaelestiaCli;
+            assert historicalCryoforgeHome.programs.caelestia.package
+              == caelestiaCryoforge;
+            assert historicalRealGreeterHome.programs.caelestia.package
+              == caelestiaCryoforge;
+            assert stockHome.programs.caelestia.package
+              != caelestiaCryoforgeThemeSelector;
+            assert classicHome.programs.caelestia.package
+              != caelestiaCryoforgeThemeSelector;
+            assert selectorPatchOrder == [
+              "cryoforge-special-workspaces.patch"
+              "cryoforge-chisa-preset-gallery.patch"
+              "cryoforge-region-screenshot.patch"
+              "cryoforge-nexus-focus-hub.patch"
+              "cryoforge-nexus-media-workspace.patch"
+              "cryoforge-nexus-theme-selector.patch"
+            ];
+            builtins.toFile
+              "phase19c-package-boundary-evidence"
+              "current CryoForge systems use Phase 19C; Classic, Stock, lock, greeter, and historical systems use accepted boundaries\n";
+          selectorQuickshell =
+            builtins.head caelestiaCryoforgeThemeSelector.buildInputs;
+        in
+        pkgs.runCommand "phase19c-manual-theme-selection-contract-tests" {
+          exportReferencesGraph = [
+            "real-greeter-package-closure"
+            caelestiaRealGreeter
+            "real-greeter-session-closure"
+            currentRealGreeterCommand
+          ];
+          nativeBuildInputs = [
+            pkgs.bash
+            pkgs.coreutils
+            pkgs.findutils
+            pkgs.gnugrep
+            pkgs.gnused
+            pkgs.patch
+            pkgs.python3
+            pkgs.binutils
+            pkgs.qt6.qtdeclarative
+            pkgs.strace
+          ] ++ caelestiaCryoforgeThemeSelector.buildInputs;
+        } ''
+          bash ${./tests/phase19c/test_manual_theme_selection_contract.sh} \
+            ${./.} \
+            ${cryoforgeThemeRuntime} \
+            ${caelestiaCryoforgeThemeSelector}/share/caelestia-shell \
+            ${caelestiaCryoforge}/share/caelestia-shell \
+            ${caelestia-shell} \
+            ${phase19cSourceProjection} \
+            ${boundaryEvidence} \
+            ${cryoforgeCaelestiaCli} \
+            ${upstreamCaelestiaCli} \
+            ${caelestia-shell.inputs.caelestia-cli} \
+            ${realGreeterSourceBoundary} \
+            ${caelestiaRealGreeter} \
+            ${currentRealGreeterCommand} \
+            ${currentRealGreeterGreetdUnit}/greetd.service \
+            real-greeter-package-closure \
+            real-greeter-session-closure \
+            ${selectorQuickshell}
+          touch "$out"
+        '';
+      # Phase 19C focused check end
 
       phase19a-theme-pack-foundation-contract =
         let
@@ -567,7 +904,7 @@
           ];
         } ''
           bash ${./tests/phase19b/test_first_curated_theme_contract.sh} \
-            ${r3HistoricalSourceProjection} \
+            ${phase19cSourceProjection} \
             ${./desktop/themes/cryoforge-denia/wallpaper.jpg} \
             ${currentThemePacks} \
             ${expectedRegistry} \
@@ -592,7 +929,7 @@
             ${caelestia-shell} \
             ${caelestiaRealLock.quickshell} \
             ${caelestiaRealGreeter}/share/caelestia-real-greeter \
-            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/keybinds.lua".source}
+            ${cryoforgeSystemPre19c.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/keybinds.lua".source}
           touch "$out"
         '';
 
@@ -672,8 +1009,8 @@
 
       phase16b-cryoforge-window-feel-contract =
         assert
-          cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/variables.lua".source
-          == realGreeterSystem.config.home-manager.users.accelra.xdg.configFile."hypr/variables.lua".source;
+          cryoforgeSystemPre19c.config.home-manager.users.accelra.xdg.configFile."hypr/variables.lua".source
+          == realGreeterSystemPre19c.config.home-manager.users.accelra.xdg.configFile."hypr/variables.lua".source;
         pkgs.runCommand "phase16b-cryoforge-window-feel-contract-tests" {
           nativeBuildInputs = [
             pkgs.bash
@@ -683,15 +1020,15 @@
           ];
         } ''
           bash ${./tests/phase16b/test_window_feel_contract.sh} \
-            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/variables.lua".source} \
-            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/general.lua".source} \
-            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/decoration.lua".source} \
-            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/animations.lua".source} \
-            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/rules.lua".source} \
-            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/execs.lua".source} \
-            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/utils/functions.lua".source} \
-            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/keybinds.lua".source} \
-            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/gestures.lua".source} \
+            ${cryoforgeSystemPre19c.config.home-manager.users.accelra.xdg.configFile."hypr/variables.lua".source} \
+            ${cryoforgeSystemPre19c.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/general.lua".source} \
+            ${cryoforgeSystemPre19c.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/decoration.lua".source} \
+            ${cryoforgeSystemPre19c.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/animations.lua".source} \
+            ${cryoforgeSystemPre19c.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/rules.lua".source} \
+            ${cryoforgeSystemPre19c.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/execs.lua".source} \
+            ${cryoforgeSystemPre19c.config.home-manager.users.accelra.xdg.configFile."hypr/utils/functions.lua".source} \
+            ${cryoforgeSystemPre19c.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/keybinds.lua".source} \
+            ${cryoforgeSystemPre19c.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/gestures.lua".source} \
             ${stockSystem.config.home-manager.users.accelra.xdg.configFile."hypr/variables.lua".source} \
             ${stockSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/decoration.lua".source} \
             ${stockSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/animations.lua".source} \
@@ -701,8 +1038,8 @@
             ${stockSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/gestures.lua".source} \
             ${caelestia-dots} \
             ${./desktop/hypr/hyprland.conf} \
-            ${./desktop/profiles.nix} \
-            ${r3HistoricalSourceProjection}/flake.nix \
+            ${phase19cSourceProjection}/desktop/profiles.nix \
+            ${phase19cSourceProjection}/flake.nix \
             ${./desktop/caelestia/cryoforge-special-workspaces.patch} \
             ${./desktop/caelestia/cryoforge-region-screenshot.patch} \
             ${./desktop/caelestia/screenshot-region.sh} \
@@ -713,8 +1050,8 @@
 
       phase16c-base-app-integration-contract =
         let
-          targetHome = realGreeterSystem.config.home-manager.users.accelra;
-          cryoforgeHome = cryoforgeSystem.config.home-manager.users.accelra;
+          targetHome = realGreeterSystemPre19c.config.home-manager.users.accelra;
+          cryoforgeHome = cryoforgeSystemPre19c.config.home-manager.users.accelra;
           expectedUserServices = [
             "caelestia"
             "caelestia-clipboard-image"
@@ -750,19 +1087,19 @@
         assert !(builtins.hasAttr "fastfetch/config.jsonc" targetHome.xdg.configFile);
         assert builtins.attrNames targetHome.systemd.user.services == expectedUserServices;
         assert builtins.attrNames targetHome.home.activation == expectedActivations;
-        assert realGreeterSystem.config.programs.regreet.enable;
-        assert realGreeterSystem.config.programs.regreet.package == recoveryGreeter;
-        assert realGreeterSystem.config.services.greetd.settings.default_session.user == "greeter";
-        assert realGreeterSystem.config.services.greetd.restart;
-        assert realGreeterSystem.config.systemd.services.greetd.restartIfChanged;
-        assert !realGreeterSystem.config.systemd.services.greetd.stopIfChanged;
-        assert realGreeterSystem.config.security.pam.services ? hyprlock;
-        assert realGreeterSystem.config.boot.plymouth.enable;
-        assert realGreeterSystem.config.boot.plymouth.theme == "bgrt";
-        assert !realGreeterSystem.config.boot.initrd.verbose;
-        assert realGreeterSystem.config.boot.consoleLogLevel == 3;
+        assert realGreeterSystemPre19c.config.programs.regreet.enable;
+        assert realGreeterSystemPre19c.config.programs.regreet.package == recoveryGreeter;
+        assert realGreeterSystemPre19c.config.services.greetd.settings.default_session.user == "greeter";
+        assert realGreeterSystemPre19c.config.services.greetd.restart;
+        assert realGreeterSystemPre19c.config.systemd.services.greetd.restartIfChanged;
+        assert !realGreeterSystemPre19c.config.systemd.services.greetd.stopIfChanged;
+        assert realGreeterSystemPre19c.config.security.pam.services ? hyprlock;
+        assert realGreeterSystemPre19c.config.boot.plymouth.enable;
+        assert realGreeterSystemPre19c.config.boot.plymouth.theme == "bgrt";
+        assert !realGreeterSystemPre19c.config.boot.initrd.verbose;
+        assert realGreeterSystemPre19c.config.boot.consoleLogLevel == 3;
         assert nixpkgs.lib.all
-          (param: builtins.elem param realGreeterSystem.config.boot.kernelParams)
+          (param: builtins.elem param realGreeterSystemPre19c.config.boot.kernelParams)
           [
             "quiet"
             "loglevel=3"
@@ -791,33 +1128,33 @@
             ${./desktop/apps/fastfetch.nix} \
             ${targetSeedScript} \
             ${stockSeedScript} \
-            ${./desktop/profiles.nix} \
-            ${r3HistoricalSourceProjection}/flake.nix \
+            ${phase19cSourceProjection}/desktop/profiles.nix \
+            ${phase19cSourceProjection}/flake.nix \
             ${./flake.lock} \
             ${./home.nix} \
             ${./configuration.nix} \
             ${./desktop-hyprland.nix} \
             ${./desktop/caelestia/chisa-pool} \
-            ${r3HistoricalSourceProjection}/desktop/caelestia/real-greeter \
+            ${phase19cSourceProjection}/desktop/caelestia/real-greeter \
             ${./desktop/regreet} \
             ${./desktop/hypr} \
             ${phase16dBaseCryoforgePackage} \
             ${./packages/caelestia-real-greeter.nix} \
             ${./packages/caelestia-real-lock.nix} \
-            ${r3HistoricalSourceProjection}/desktop/caelestia/real-greeter-system.nix \
+            ${phase19cSourceProjection}/desktop/caelestia/real-greeter-system.nix \
             ${./desktop/caelestia/cryoforge-chisa-preset-gallery.patch} \
             ${./desktop/caelestia/cryoforge-special-workspaces.patch} \
             ${./desktop/caelestia/cryoforge-region-screenshot.patch} \
             ${./desktop/caelestia/screenshot-region.sh} \
-            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/variables.lua".source} \
-            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/general.lua".source} \
-            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/decoration.lua".source} \
-            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/animations.lua".source} \
-            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/rules.lua".source} \
-            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/execs.lua".source} \
-            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/utils/functions.lua".source} \
-            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/keybinds.lua".source} \
-            ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/gestures.lua".source}
+            ${cryoforgeSystemPre19c.config.home-manager.users.accelra.xdg.configFile."hypr/variables.lua".source} \
+            ${cryoforgeSystemPre19c.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/general.lua".source} \
+            ${cryoforgeSystemPre19c.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/decoration.lua".source} \
+            ${cryoforgeSystemPre19c.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/animations.lua".source} \
+            ${cryoforgeSystemPre19c.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/rules.lua".source} \
+            ${cryoforgeSystemPre19c.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/execs.lua".source} \
+            ${cryoforgeSystemPre19c.config.home-manager.users.accelra.xdg.configFile."hypr/utils/functions.lua".source} \
+            ${cryoforgeSystemPre19c.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/keybinds.lua".source} \
+            ${cryoforgeSystemPre19c.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/gestures.lua".source}
           touch "$out"
         '';
 
@@ -838,17 +1175,17 @@
           ${phase16eBaseCryoforgePackage} \
           ${./desktop/caelestia/cryoforge-nexus-focus-hub.patch} \
           ${./desktop/caelestia/nexus/FocusHubPage.qml} \
-          ${r3HistoricalSourceProjection}/flake.nix \
+          ${phase19cSourceProjection}/flake.nix \
           ${./flake.lock} \
-          ${r3HistoricalSourceProjection} \
-          ${realGreeterSystem.config.system.build.toplevel}
+          ${phase19cSourceProjection} \
+          ${realGreeterSystemPre19c.config.system.build.toplevel}
         touch "$out"
       '';
 
       phase16e-nexus-media-workspace-contract =
         let
           targetName = "nixos-caelestia-cryoforge-real-greeter";
-          targetSystem = realGreeterSystem;
+          targetSystem = realGreeterSystemPre19c;
         in
         assert targetName == "nixos-caelestia-cryoforge-real-greeter";
         pkgs.runCommand "phase16e-nexus-media-workspace-contract-tests" {
@@ -874,9 +1211,9 @@
             ${./desktop/caelestia/nexus/MediaWorkspacePage.qml} \
             ${./desktop/caelestia/cryoforge-nexus-focus-hub.patch} \
             ${./desktop/caelestia/nexus/FocusHubPage.qml} \
-            ${r3HistoricalSourceProjection}/flake.nix \
+            ${phase19cSourceProjection}/flake.nix \
             ${./flake.lock} \
-            ${r3HistoricalSourceProjection} \
+            ${phase19cSourceProjection} \
             ${targetSystem.config.system.build.toplevel}
           touch "$out"
         '';
@@ -893,8 +1230,8 @@
         bash ${./tests/phase17a/test_screenshot_contract.sh} \
           ${caelestiaCryoforge}/share/caelestia-shell/modules/areapicker/AreaPicker.qml \
           ${./desktop/caelestia/screenshot-region.sh} \
-          ${cryoforgeSystem.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/keybinds.lua".source} \
-          ${cryoforgeSystem.config.home-manager.users.accelra.programs.caelestia.cli.package}
+          ${cryoforgeSystemPre19c.config.home-manager.users.accelra.xdg.configFile."hypr/hyprland/keybinds.lua".source} \
+          ${cryoforgeSystemPre19c.config.home-manager.users.accelra.programs.caelestia.cli.package}
         touch "$out"
       '';
 
@@ -975,20 +1312,20 @@
 
       phase13b-system-contract =
         assert cryoforgeCommand == expectedCryoforgeCommand;
-        assert realGreeterSystem.config.programs.regreet.package == recoveryGreeter;
-        assert realGreeterSystem.config.services.greetd.settings.default_session.user == "greeter";
-        assert realGreeterSystem.config.services.greetd.restart;
-        assert realGreeterSystem.config.systemd.services.greetd.restartIfChanged;
-        assert !realGreeterSystem.config.systemd.services.greetd.stopIfChanged;
-        assert realGreeterSystem.config.systemd.services.greetd.serviceConfig.Restart == "always";
-        assert !cryoforgeSystem.config.systemd.services.greetd.restartIfChanged;
-        assert cryoforgeSystem.config.systemd.services.greetd.stopIfChanged;
-        assert realGreeterSystem.config.boot.plymouth.enable;
-        assert realGreeterSystem.config.boot.plymouth.theme == "bgrt";
-        assert !realGreeterSystem.config.boot.initrd.verbose;
-        assert realGreeterSystem.config.boot.consoleLogLevel == 3;
+        assert realGreeterSystemPre19c.config.programs.regreet.package == recoveryGreeter;
+        assert realGreeterSystemPre19c.config.services.greetd.settings.default_session.user == "greeter";
+        assert realGreeterSystemPre19c.config.services.greetd.restart;
+        assert realGreeterSystemPre19c.config.systemd.services.greetd.restartIfChanged;
+        assert !realGreeterSystemPre19c.config.systemd.services.greetd.stopIfChanged;
+        assert realGreeterSystemPre19c.config.systemd.services.greetd.serviceConfig.Restart == "always";
+        assert !cryoforgeSystemPre19c.config.systemd.services.greetd.restartIfChanged;
+        assert cryoforgeSystemPre19c.config.systemd.services.greetd.stopIfChanged;
+        assert realGreeterSystemPre19c.config.boot.plymouth.enable;
+        assert realGreeterSystemPre19c.config.boot.plymouth.theme == "bgrt";
+        assert !realGreeterSystemPre19c.config.boot.initrd.verbose;
+        assert realGreeterSystemPre19c.config.boot.consoleLogLevel == 3;
         assert nixpkgs.lib.all
-          (param: builtins.elem param realGreeterSystem.config.boot.kernelParams)
+          (param: builtins.elem param realGreeterSystemPre19c.config.boot.kernelParams)
           [
             "quiet"
             "loglevel=3"
@@ -999,15 +1336,15 @@
             "vt.global_cursor_default=0"
             "splash"
           ];
-        assert realGreeterSystem.config.systemd.services.greetd.serviceConfig.StandardOutput == "journal";
-        assert realGreeterSystem.config.systemd.services.greetd.serviceConfig.StandardError == "journal";
-        assert realGreeterSystem.config.services.greetd.settings.terminal.vt == 1;
-        assert realGreeterSystem.config.systemd.services."getty@".enable;
-        assert builtins.elem "autovt@.service" realGreeterSystem.config.systemd.services."getty@".aliases;
-        assert !realGreeterSystem.config.systemd.services."autovt@tty1".enable;
-        assert realGreeterSystem.config.systemd.tmpfiles.settings."10-regreet"."/var/lib/regreet".d.mode == "0700";
-        assert realGreeterSystem.config.systemd.tmpfiles.settings."10-regreet"."/var/log/regreet".d.mode == "0700";
-        assert realGreeterSystem.config.systemd.tmpfiles.settings."13b-caelestia-real-greeter"."/var/lib/caelestia-real-greeter".d.mode == "0700";
+        assert realGreeterSystemPre19c.config.systemd.services.greetd.serviceConfig.StandardOutput == "journal";
+        assert realGreeterSystemPre19c.config.systemd.services.greetd.serviceConfig.StandardError == "journal";
+        assert realGreeterSystemPre19c.config.services.greetd.settings.terminal.vt == 1;
+        assert realGreeterSystemPre19c.config.systemd.services."getty@".enable;
+        assert builtins.elem "autovt@.service" realGreeterSystemPre19c.config.systemd.services."getty@".aliases;
+        assert !realGreeterSystemPre19c.config.systemd.services."autovt@tty1".enable;
+        assert realGreeterSystemPre19c.config.systemd.tmpfiles.settings."10-regreet"."/var/lib/regreet".d.mode == "0700";
+        assert realGreeterSystemPre19c.config.systemd.tmpfiles.settings."10-regreet"."/var/log/regreet".d.mode == "0700";
+        assert realGreeterSystemPre19c.config.systemd.tmpfiles.settings."13b-caelestia-real-greeter"."/var/lib/caelestia-real-greeter".d.mode == "0700";
         pkgs.runCommand "phase13b-system-contract" {
           nativeBuildInputs = [ pkgs.gnugrep ];
         } ''
@@ -1046,7 +1383,7 @@
             ${caelestiaRealGreeter}/share/caelestia-real-greeter/real-greeter/adapters/GreetdController.qml
           grep -Fq \
             'phase13b-real-greeter-audition' \
-            ${realGreeterSystem.config.system.build.toplevel}/sw/bin/phase13b-real-greeter-audition
+            ${realGreeterSystemPre19c.config.system.build.toplevel}/sw/bin/phase13b-real-greeter-audition
           ! grep -Fqx 'X-RestartIfChanged=false' ${realGreeterGreetdUnit}/greetd.service
           grep -Fqx 'X-StopIfChanged=false' ${realGreeterGreetdUnit}/greetd.service
           grep -Fqx 'Restart=always' ${realGreeterGreetdUnit}/greetd.service
@@ -1056,10 +1393,10 @@
           ! grep -Fqx 'StandardError=tty' ${realGreeterGreetdUnit}/greetd.service
           grep -Fqx 'X-RestartIfChanged=false' ${cryoforgeGreetdUnit}/greetd.service
           ! grep -Fqx 'X-StopIfChanged=false' ${cryoforgeGreetdUnit}/greetd.service
-          test "$(readlink ${realGreeterSystem.config.system.build.toplevel}/etc/systemd/system/autovt@.service)" = \
+          test "$(readlink ${realGreeterSystemPre19c.config.system.build.toplevel}/etc/systemd/system/autovt@.service)" = \
             getty@.service
           test "$(readlink -f \
-            ${realGreeterSystem.config.system.build.toplevel}/etc/systemd/system/autovt@tty1.service)" = \
+            ${realGreeterSystemPre19c.config.system.build.toplevel}/etc/systemd/system/autovt@tty1.service)" = \
             /dev/null
           touch "$out"
         '';

@@ -1,4 +1,5 @@
 {
+  caelestiaCryoforgeThemeSelector,
   caelestia-dots,
   caelestia-shell,
   config,
@@ -51,10 +52,11 @@ let
         "$out/share/caelestia-shell/shell.qml"
     '';
   });
-  cryoforgeCaelestiaPackage = pkgs.callPackage ../packages/caelestia-cryoforge.nix {
-    inherit caelestia-shell;
-    caelestiaChisaPool = chisaPoolAssets;
-  };
+  cryoforgeCaelestiaPackage = caelestiaCryoforgeThemeSelector;
+  cryoforgeCaelestiaCli =
+    if caelestiaCryoforgeThemeSelector ? caelestiaCli
+    then caelestiaCryoforgeThemeSelector.caelestiaCli
+    else null;
   caelestiaPackage =
     if isCryoforge then cryoforgeCaelestiaPackage else stockCaelestiaPackage;
   caelestiaCli = config.programs.caelestia.cli.package;
@@ -1028,6 +1030,9 @@ in
 
       cli = {
         enable = true;
+        package = lib.mkIf (
+          isCryoforge && cryoforgeCaelestiaCli != null
+        ) cryoforgeCaelestiaCli;
         settings =
           if isCaelestiaDerived
           then { }
