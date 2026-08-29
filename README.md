@@ -22,8 +22,15 @@ The current development and build target is:
 nixos-caelestia-cryoforge-real-greeter
 ```
 
-This identifies the repository target. It does not claim that the running
-system or boot profile currently uses that output.
+At the Phase 19C closure on August 29, 2026, both the running system and the
+next-boot profile used:
+
+```text
+/nix/store/9jch06zb0vczkbymw6321cfi02rl2azj-nixos-system-nixos-26.05.6282.2f5a153c270b
+```
+
+Boot persistence was configured and verified. A user-controlled cold reboot
+into this Phase 19C generation has not yet been performed.
 
 ## Flake outputs
 
@@ -80,6 +87,8 @@ The current repository baseline includes:
   greeter, and lock presentation;
 - a finite, manual Chisa gallery containing the approved Chisa Pool preset,
   with temporary preview and an explicit **Apply** action;
+- manual Theme Pack selection in CryoForge Nexus, with CryoForge Neutral and
+  CryoForge Denia, reversible preview, and explicit transactional Apply;
 - quiet Plymouth boot using the `bgrt` theme and conservative console logging;
 - the accepted CryoForge window-feel policy;
 - one unified region screenshot flow;
@@ -88,8 +97,40 @@ The current repository baseline includes:
   CryoForge profile;
 - a Classic recovery and fallback path.
 
-These items are accepted in source and covered by repository checks. This
-status does not describe the active system or its selected boot generation.
+These items are accepted in source and covered by repository checks. The
+accepted Phase 19C runtime and next-boot generation are recorded above.
+
+## Manual Theme Pack selection
+
+Phase 19C added manual Theme Pack selection to CryoForge Nexus. The selector
+provides **CryoForge Neutral** and **CryoForge Denia**:
+
+- Preview is temporary and reversible through **Cancel**, <kbd>Escape</kbd>,
+  and back navigation.
+- Neutral changes the palette while preserving the current wallpaper.
+- Denia applies its curated palette and wallpaper. The wallpaper SHA-256 is
+  `34e9569bd827a07c20715d6b14c09603c60755d4a9d829ed6b542fff6f3fefcb`.
+- Apply is explicit and transactional. There is no automatic switching.
+
+The canonical applied Caelestia scheme identity is:
+
+```text
+name = cryoforge-pack
+flavour = cryoforge-denia
+mode = dark
+variant = tonalspot
+```
+
+Runtime scheme metadata remained null; the canonical identity is represented
+by the four fields above. The guarded Caelestia CLI and shell consume the same
+packaged scheme data. CLI contracts isolate HOME and XDG state, disable all
+adapters, and prohibit numbered PTY access and terminal escape output.
+
+No daemon, timer, watcher, network route, automatic theme switching, or
+application adapter was added. Preview/Cancel passed for Neutral and Denia;
+Apply passed for Denia. Denia remained selected after closing and reopening
+Nexus and after a controlled `caelestia.service` restart. The Caelestia bar,
+notification ownership, session targets, and `greetd` remained healthy.
 
 ## Screenshot workflow
 
@@ -284,17 +325,21 @@ Completed:
 - Phase 19B — First curated wallpaper theme, adding CryoForge Denia as the
   first curated pack while keeping neutral first and default. Denia is
   packaged as a static repository asset with its manually curated palette,
-  preview, and provenance, but it has no runtime consumer and has not been
-  applied to the live desktop.
+  preview, and provenance. At the Phase 19B boundary it had no runtime
+  consumer and had not been applied to the live desktop;
+- Phase 19C — Manual Nexus theme selection, completed on August 29, 2026.
+  Preview/Cancel passed for Neutral and Denia, explicit transactional Apply
+  passed for Denia, boot persistence was verified, and the implementation is
+  commit `25a33eebc2d6c1af06b86f74590bc022797a43d6`.
 
 Next planned phase:
 
-- Phase 19C — manual Nexus theme selection, with preview-first selection,
-  explicit Apply, neutral fallback, and rollback-safe behavior.
-
-Future roadmap:
-
 - Phase 19D — bounded application integration.
+
+Pending operational validation:
+
+- A user-controlled cold reboot into the boot-persisted Phase 19C generation.
+  This remains separate from implementation work.
 
 Future theme packs must preserve a stable neutral base first. Each pack may
 provide an explicit curated palette plus a wallpaper and bounded UI/application

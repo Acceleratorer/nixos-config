@@ -22,6 +22,13 @@ the same context.
   `817a220e8e87c4df9f3681033a0d8a8054cdaa30`
 - R2 stable-base system, built in Phase 16E and verified after a cold reboot:
   `/nix/store/f62gina1wffrf2r5hfiw5prmxqavgxbh-nixos-system-nixos-26.05.6282.2f5a153c270b`
+- Phase 19C implementation commit:
+  `25a33eebc2d6c1af06b86f74590bc022797a43d6`
+- Phase 19C accepted and boot-persisted system:
+  `/nix/store/9jch06zb0vczkbymw6321cfi02rl2azj-nixos-system-nixos-26.05.6282.2f5a153c270b`
+- On August 29, 2026, the running system and next-boot profile both matched
+  that Phase 19C output. Boot persistence was configured and verified; a
+  user-controlled cold reboot into it has not yet been performed.
 
 Reference-only upstream clones:
 
@@ -223,8 +230,49 @@ retain their dedicated opaque/unblurred rules.
 - Preserved the historical Phase 19A neutral-only registry and package
   projection under its unchanged focused contract.
 - Added no runtime consumer, selector, persistence, activation, or behavior
-  change. CryoForge Denia is packaged but has not been applied to the live
-  desktop.
+  change. At the Phase 19B boundary, CryoForge Denia was packaged but had not
+  been applied to the live desktop.
+
+### Phase 19C — Manual Nexus theme selection
+
+Completed on August 29, 2026 in implementation commit
+`25a33eebc2d6c1af06b86f74590bc022797a43d6`:
+
+- Added manual Theme Pack selection to CryoForge Nexus with exactly
+  **CryoForge Neutral** and **CryoForge Denia**.
+- Made preview reversible through **Cancel**, Escape, and back navigation.
+- Neutral changes the palette while preserving the current wallpaper.
+- Denia applies its curated palette and wallpaper. The wallpaper SHA-256 is
+  `34e9569bd827a07c20715d6b14c09603c60755d4a9d829ed6b542fff6f3fefcb`.
+- Apply is explicit and transactional; there is no automatic switching.
+- The canonical applied Caelestia scheme identity is:
+  - `name = cryoforge-pack`
+  - `flavour = cryoforge-denia`
+  - `mode = dark`
+  - `variant = tonalspot`
+- Runtime scheme metadata remained null. Canonical identity is represented by
+  `name`, `flavour`, `mode`, and `variant`, not populated metadata.
+- The guarded Caelestia CLI and shell use the same packaged scheme data.
+- All CLI tests isolate HOME and XDG state, disable all adapters, and prohibit
+  numbered PTY access and terminal escape output.
+- Added no daemon, timer, watcher, network route, automatic theme switching,
+  or application adapter.
+- Kept the real-greeter boundary isolated from Phase 19C and retained its
+  accepted R3 session, TOML, unit, restart, and stop policies.
+- Corrected the runtime QML defect caused by placing `Connections`,
+  `FileView`, and `Process` directly under `PageBase` by using explicitly
+  typed object properties while retaining one direct visual `ColumnLayout`.
+- Added runtime-engine regression coverage for the structural QML defect that
+  `qmllint` and `qmlcachegen` did not catch.
+- Preview/Cancel passed for Neutral and Denia. Apply passed for Denia.
+- Denia remained selected after closing and reopening Nexus and after a
+  controlled `caelestia.service` restart.
+- The Caelestia bar, notification ownership, session targets, and `greetd`
+  remained healthy.
+- The accepted and boot-persisted system is
+  `/nix/store/9jch06zb0vczkbymw6321cfi02rl2azj-nixos-system-nixos-26.05.6282.2f5a153c270b`.
+- Boot persistence was configured and verified. A cold reboot into Phase 19C
+  has not been performed.
 
 ## Rejected or intentionally excluded work
 
@@ -297,22 +345,21 @@ Completed against repository baseline
 - The real-greeter recovery action returned to the recovery login as designed.
 - `main` remained clean and synchronized with `origin/main`.
 
-R2, Phase 19A, and Phase 19B are complete. Phase 19C is now the next planned
-phase.
+R2, Phase 19A, Phase 19B, and Phase 19C are complete.
 
-### Phase 19C — Manual Nexus theme selection (next planned)
+### Phase 19C — Manual Nexus theme selection (completed)
 
-Integrate theme packs into the existing Nexus flow:
+The manual, preview-first, explicit-Apply, rollback-safe Nexus selector is
+accepted. Its implementation and runtime verification are recorded in the
+completed-phases section above.
 
-- Show available packs.
-- Preview before applying.
-- Require an explicit Apply action.
-- Provide an explicit neutral fallback.
-- Keep selection manual and bounded.
-- Make rollback to neutral explicit and safe.
-- Avoid configuration overwrites and hidden background work.
+### Operational checkpoint — Phase 19C cold reboot (pending)
 
-### Phase 19D — Bounded application integration
+Boot persistence is configured and verified against the accepted Phase 19C
+system. A user-controlled cold reboot into that generation remains pending and
+is separate from implementation work.
+
+### Phase 19D — Bounded application integration (next planned)
 
 Keep application integration separate from Phase 19C. Only after manual
 shell/theme selection behavior is accepted:
@@ -340,6 +387,7 @@ A phase is complete only when:
 - The change is committed directly to `main` and pushed.
 - README and this plan remain consistent with the repository state.
 
-R2, Phase 19A, and Phase 19B are complete. Begin Phase 19C only as its own
-narrowly scoped, manual, preview-first, explicit-Apply, rollback-safe phase
-with a fresh Gate 0 and build-only review before any activation.
+R2, Phase 19A, Phase 19B, and Phase 19C are complete. Begin Phase 19D only as
+its own narrowly scoped, opt-in application-integration phase with a fresh
+Gate 0. Keep the pending user-controlled Phase 19C cold reboot separate from
+Phase 19D implementation work.
