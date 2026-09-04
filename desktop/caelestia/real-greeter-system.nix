@@ -1,5 +1,6 @@
 {
   caelestia-shell,
+  caelestiaRealGreeter,
   config,
   lib,
   pkgs,
@@ -7,11 +8,7 @@
 }:
 
 let
-  chisaPoolAssets = pkgs.callPackage ../../packages/caelestia-chisa-pool.nix { };
-  realGreeter = pkgs.callPackage ../../packages/caelestia-real-greeter.nix {
-    inherit caelestia-shell;
-    caelestiaChisaPool = chisaPoolAssets;
-  };
+  realGreeter = caelestiaRealGreeter;
   recoveryGreeter = config.programs.regreet.package;
   recoveryLog = "/var/log/regreet/phase13b-recovery.log";
   recoveryLauncher = pkgs.writeShellApplication {

@@ -4,16 +4,19 @@
   cryoforgeCaelestiaCli,
   cryoforgeThemeRuntime,
   lib,
+  registry ? import ../desktop/themes/registry.nix { },
   upstreamCaelestiaCli,
 }:
 
 let
   themeSelectorPage = ../desktop/caelestia/nexus/ThemePackGallery.qml;
-  themeSelectorPageSha256 = "6871c184e4af53a31f00c1d2759b73bf4513d18f2538da10f7e1580b4d6d64ea";
+  themeSelectorPageSha256 = "c63a511f8b86fd7c077abf92e4812f2d2f4ff46a8ade6b028da921eea5a25533";
   themeSelectorPatch = ../desktop/caelestia/cryoforge-nexus-theme-selector.patch;
   themeSelectorPatchSha256 = "9e400f31b47fa4be390138f7370a5d398a880677e544c6e6f8c58909b88060c1";
   upstreamCaelestiaCliPath =
     builtins.unsafeDiscardStringContext (toString upstreamCaelestiaCli);
+  approvedPackIds = map (pack: pack.id) registry.packs;
+  approvedPackIdsJson = builtins.toJSON approvedPackIds;
 
   guardedPackage =
     assert lib.assertMsg (
@@ -51,6 +54,7 @@ guardedPackage.overrideAttrs (old: {
   ];
   passthru = (old.passthru or { }) // {
     caelestiaCli = cryoforgeCaelestiaCli;
+    themeRuntime = cryoforgeThemeRuntime;
   };
 
   postInstall =
@@ -74,6 +78,10 @@ guardedPackage.overrideAttrs (old: {
         --replace-fail '@THEME_RUNTIME_ROOT@' \
         '${cryoforgeThemeRuntime}/share/cryoforge/theme-runtime' \
         --replace-fail '@THEME_APPLY_HELPER@' \
-        '${cryoforgeThemeRuntime}/bin/cryoforge-apply-theme-pack'
+        '${cryoforgeThemeRuntime}/bin/cryoforge-apply-theme-pack' \
+        --replace-fail '@APPROVED_PACK_IDS@' \
+        '${approvedPackIdsJson}' \
+        --replace-fail '@DEFAULT_PACK_ID@' \
+        '${registry.defaultPackId}'
     '';
 })

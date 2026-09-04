@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Effects
-import Quickshell
 import Caelestia.Config
 import qs.components
 import qs.components.controls
@@ -17,7 +16,7 @@ Item {
 
     Image {
         anchors.fill: parent
-        source: Quickshell.shellPath("assets/greeter-wallpaper.png")
+        source: Wallpapers.current
         asynchronous: true
         fillMode: Image.PreserveAspectCrop
 

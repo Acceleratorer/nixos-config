@@ -3,21 +3,10 @@
 }:
 
 let
-  packIds = map (pack: pack.id) registry.packs;
   withoutHash = colour: builtins.substring 1 6 colour;
 
-  metadata = {
-    neutral = {
-      name = "cryoforge-pack";
-      flavour = "neutral";
-    };
-    cryoforge-denia = {
-      name = "cryoforge-pack";
-      flavour = "cryoforge-denia";
-    };
-  };
-
-  adaptPalette = palette:
+  adaptPalette =
+    palette:
     builtins.mapAttrs (_: withoutHash) {
       primary_paletteKeyColor = palette.accent;
       secondary_paletteKeyColor = palette.focus;
@@ -100,20 +89,17 @@ let
     };
 
   mkScheme = pack: {
-    inherit (metadata.${pack.id}) name flavour;
+    name = "cryoforge-pack";
+    flavour = pack.id;
     cryoforge = {
       schemaVersion = 1;
       packId = pack.id;
     };
     mode = "dark";
     variant = "tonalspot";
-    colours = adaptPalette pack.palette;
+    colours = if pack.scheme.mode == "fixed" then pack.scheme.colours else adaptPalette pack.palette;
   };
 in
-assert packIds == [
-  "neutral"
-  "cryoforge-denia"
-];
 builtins.listToAttrs (
   map (pack: {
     name = pack.id;

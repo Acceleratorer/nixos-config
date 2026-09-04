@@ -2,7 +2,8 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
+import qs.utils
 
 Singleton {
-    readonly property string current: Quickshell.shellPath("assets/greeter-wallpaper.png")
+    readonly property string current: `${Paths.state}/wallpaper/current`
 }

@@ -19,6 +19,8 @@ PageBase {
     focus: true
 
     readonly property string runtimeRoot: "@THEME_RUNTIME_ROOT@"
+    readonly property list<string> approvedPackIds: JSON.parse('@APPROVED_PACK_IDS@')
+    readonly property string defaultPackId: "@DEFAULT_PACK_ID@"
     property list<var> packs: []
     property int selectedIndex
     readonly property var selectedPack: packs[selectedIndex] ?? null
@@ -35,7 +37,36 @@ PageBase {
     readonly property bool canApply: !applying && !previewLoading && selectedPack !== null && previewedPackId === selectedPack.id && isSupportedPackId(selectedPack.id)
 
     function isSupportedPackId(packId: string): bool {
-        return packId === "neutral" || packId === "cryoforge-denia";
+        return approvedPackIds.includes(packId);
+    }
+
+    function exactKeys(value: var, expected: var): bool {
+        if (!value || typeof value !== "object" || Array.isArray(value))
+            return false;
+
+        const actual = Object.keys(value).sort();
+        const wanted = Array.from(expected).sort();
+        return actual.length === wanted.length && actual.every((key, index) => key === wanted[index]);
+    }
+
+    function validAssetPath(value: var): bool {
+        return typeof value === "string" && value.length > 0 && value.length <= 240 && /^[A-Za-z0-9][A-Za-z0-9._-]*(\/[A-Za-z0-9][A-Za-z0-9._-]*)*$/.test(value);
+    }
+
+    function validPack(pack: var): bool {
+        const semanticKeys = ["background", "surface", "surfaceElevated", "foreground", "muted", "accent", "accentForeground", "border", "focus", "success", "warning", "error"];
+        const shellKeys = ["panel", "card", "text", "subduedText", "accent", "outline", "focus"];
+        if (!exactKeys(pack, ["id", "displayName", "kind", "wallpaper", "palette", "shell", "preview"]) || !isSupportedPackId(pack.id) || typeof pack.displayName !== "string" || !["neutral", "curated"].includes(pack.kind))
+            return false;
+        if (!exactKeys(pack.palette, semanticKeys) || !semanticKeys.every(key => /^#[0-9a-f]{6}$/.test(pack.palette[key])))
+            return false;
+        if (!exactKeys(pack.shell, shellKeys) || !shellKeys.every(key => semanticKeys.includes(pack.shell[key])))
+            return false;
+        if (!exactKeys(pack.preview, ["thumbnail", "description", "swatches"]) || typeof pack.preview.description !== "string" || !Array.isArray(pack.preview.swatches) || pack.preview.swatches.length < 1 || pack.preview.swatches.length > 6 || !pack.preview.swatches.every(key => semanticKeys.includes(key)))
+            return false;
+        if (pack.kind === "curated")
+            return validAssetPath(pack.wallpaper) && validAssetPath(pack.preview.thumbnail);
+        return pack.wallpaper === null && pack.preview.thumbnail === null;
     }
 
     function inferCommittedPackId(): string {
@@ -188,7 +219,8 @@ PageBase {
             try {
                 const registry = JSON.parse(text());
                 const loadedPacks = registry.packs ?? [];
-                const valid = registry.schemaVersion === 1 && registry.defaultPackId === "neutral" && loadedPacks.length === 2 && loadedPacks[0]?.id === "neutral" && loadedPacks[1]?.id === "cryoforge-denia";
+                const loadedIds = loadedPacks.map(pack => pack.id);
+                const valid = root.exactKeys(registry, ["schemaVersion", "defaultPackId", "packs"]) && registry.schemaVersion === 1 && registry.defaultPackId === root.defaultPackId && loadedIds.length === root.approvedPackIds.length && loadedIds.every((id, index) => id === root.approvedPackIds[index]) && loadedPacks.every(pack => root.validPack(pack));
                 if (!valid)
                     throw new Error("unexpected registry");
 
@@ -281,7 +313,7 @@ PageBase {
 
             try {
                 const result = JSON.parse(applyOutput.text.trim());
-                if (!result.ok || result.packId !== root.previewedPackId)
+                if (!root.exactKeys(result, ["ok", "packId", "wallpaperPackId", "generation"]) || result.ok !== true || result.packId !== root.previewedPackId || !root.isSupportedPackId(result.wallpaperPackId) || !Number.isSafeInteger(result.generation) || result.generation < 1)
                     throw new Error("unexpected helper result");
 
                 Colours.load(root.previewSchemeData, false);

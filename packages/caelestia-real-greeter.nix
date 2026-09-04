@@ -3,6 +3,7 @@
   caelestia-shell,
   cage,
   coreutils,
+  cryoforgeThemeRuntime,
   greetd,
   hyprland,
   lib,
@@ -11,6 +12,7 @@
   material-symbols,
   nerd-fonts,
   nixos-icons,
+  python3,
   qt6,
   rubik,
   stdenvNoCC,
@@ -186,10 +188,16 @@ stdenvNoCC.mkDerivation {
 
     install -m 0555 "$src/real-greeter/launch-runtime.sh" "$out/bin/caelestia-real-greeter-qml"
     substituteInPlace "$out/bin/caelestia-real-greeter-qml" \
-      --replace-fail '@SCHEME@' "$root/assets/greeter-scheme.json" \
       --replace-fail '@CONFIG@' "$config" \
       --replace-fail '@AVATAR@' "$root/assets/IMG_5542.jpg" \
-      --replace-fail '@QUICKSHELL@' '${quickshell}/bin/qs'
+      --replace-fail '@QUICKSHELL@' '${quickshell}/bin/qs' \
+      --replace-fail '@RESOLVER@' \
+      '${cryoforgeThemeRuntime}/bin/cryoforge-resolve-active-theme' \
+      --replace-fail '@PYTHON@' '${python3}/bin/python3' \
+      --replace-fail '@CHISA_SCHEME@' \
+      '${cryoforgeThemeRuntime}/share/cryoforge/theme-runtime/schemes/chisa-pool.json' \
+      --replace-fail '@CHISA_WALLPAPER@' \
+      '${cryoforgeThemeRuntime}/share/cryoforge/theme-runtime/assets/chisa-pool/wallpaper.jpg'
     wrapProgram "$out/bin/caelestia-real-greeter-qml" \
       --set CAELESTIA_LIB_DIR ${extras}/lib \
       --set FONTCONFIG_FILE ${fontconfig} \
@@ -222,7 +230,7 @@ stdenvNoCC.mkDerivation {
   '';
 
   passthru = {
-    inherit caelestiaChisaPool chisaPoolCachingImage chisaPoolCachingImageSha256 quickshell plugin m3shapes upstreamPackage;
+    inherit caelestiaChisaPool chisaPoolCachingImage chisaPoolCachingImageSha256 cryoforgeThemeRuntime quickshell plugin m3shapes upstreamPackage;
     fakegreet = greetd;
     formatter = qt6.qtdeclarative;
     renderer = cage;

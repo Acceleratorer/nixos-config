@@ -34,6 +34,7 @@
         desktopProfile ? "classic",
         extraModules ? [ ],
         extraSpecialArgs ? { },
+        phase19dThemeContinuity ? true,
       }:
         nixpkgs.lib.nixosSystem {
           inherit system;
@@ -49,6 +50,7 @@
                       caelestia-dots
                       caelestia-shell
                       desktopProfile
+                      phase19dThemeContinuity
                       ;
                     caelestiaCryoforgeThemeSelector = cryoforgePackage;
                   };
@@ -58,6 +60,25 @@
 
                 system.nixos.revision = "2f5a153c270b70cb0f8c11f46d96d6d3bc39f4e3";
                 system.nixos.versionSuffix = ".6282.2f5a153c270b";
+
+                security.polkit.enable =
+                  nixpkgs.lib.mkIf
+                    (desktopProfile == "caelestia-cryoforge")
+                    true;
+                environment.systemPackages =
+                  nixpkgs.lib.optionals
+                    (desktopProfile == "caelestia-cryoforge")
+                    [ cryoforgeThemePublisher ];
+                systemd.tmpfiles.settings =
+                  nixpkgs.lib.mkIf
+                    (desktopProfile == "caelestia-cryoforge")
+                    {
+                      "19d-cryoforge-theme"."/var/lib/cryoforge-theme".d = {
+                        user = "root";
+                        group = "root";
+                        mode = "0755";
+                      };
+                    };
               }
             ]
             ++ extraModules;
@@ -65,12 +86,10 @@
       caelestiaChisaPool =
         pkgs.callPackage ./packages/caelestia-chisa-pool.nix { };
       caelestiaRealGreeter =
-        pkgs.callPackage
-          (realGreeterSourceBoundary + "/packages/caelestia-real-greeter.nix")
-          {
-            inherit caelestia-shell;
-            caelestiaChisaPool = caelestiaChisaPool;
-          };
+        pkgs.callPackage ./packages/caelestia-real-greeter.nix {
+          inherit caelestia-shell cryoforgeThemeRuntime;
+          caelestiaChisaPool = caelestiaChisaPool;
+        };
       caelestiaCryoforge =
         pkgs.callPackage ./packages/caelestia-cryoforge.nix {
           inherit caelestia-shell;
@@ -95,11 +114,50 @@
           packs = [ neutralThemePack ];
         };
       };
+      phase19cCommittedSource = builtins.fetchGit {
+        url = "file:///home/accelra/Github/nixos-config";
+        rev = "f874758a2b710093025bfa3f0dc2f799cd1283f7";
+      };
+      phase19cHistoricalRuntime = builtins.getFlake
+        "git+file:///home/accelra/Github/nixos-config?rev=f874758a2b710093025bfa3f0dc2f799cd1283f7";
+      phase19cHistoricalChecks =
+        phase19cHistoricalRuntime.checks.${system};
+      requiredHistoricalCheckNames = [
+        "phase13b-controller-recovery"
+        "phase13b-greetd-activation-transaction"
+        "phase13b-recovery-launcher"
+        "phase13b-system-contract"
+        "phase13c-real-lock-contract"
+        "phase16a-chisa-preset-gallery-contract"
+        "phase19a-theme-pack-foundation-contract"
+        "phase19b-first-curated-theme-contract"
+        "phase19c-manual-theme-selection-contract"
+      ];
+      requiredHistoricalChecks = builtins.listToAttrs (
+        map (name: {
+          inherit name;
+          value = phase19cHistoricalChecks.${name};
+        }) requiredHistoricalCheckNames
+      );
       cryoforgeThemePacks =
         pkgs.callPackage ./packages/cryoforge-theme-packs.nix {
           registry = currentThemeRegistry;
         };
       currentThemePacks = cryoforgeThemePacks;
+      cryoforgeThemePublisher =
+        pkgs.callPackage ./packages/cryoforge-theme-publisher.nix {
+          inherit cryoforgeThemePacks;
+          registry = currentThemeRegistry;
+        };
+      phase19dTestThemePublisher =
+        pkgs.callPackage ./packages/cryoforge-theme-publisher.nix {
+          inherit cryoforgeThemePacks;
+          expectedUid = -1;
+          installPolicy = false;
+          registry = currentThemeRegistry;
+          requireRoot = false;
+          stateRoot = "/build/phase19d-public-state";
+        };
       phase19aThemePacks =
         pkgs.callPackage ./packages/cryoforge-theme-packs.nix {
           registry = phase19aThemeRegistry;
@@ -111,10 +169,19 @@
       cryoforgeThemeRuntime =
         pkgs.callPackage ./packages/cryoforge-theme-runtime.nix {
           caelestiaCli = upstreamCaelestiaCli;
-          inherit cryoforgeThemePacks;
+          inherit cryoforgeThemePacks cryoforgeThemePublisher;
           registry = currentThemeRegistry;
         };
       cryoforgeCaelestiaCli = cryoforgeThemeRuntime.caelestiaCli;
+      phase19dTestThemeRuntime =
+        pkgs.callPackage ./packages/cryoforge-theme-runtime.nix {
+          caelestiaCli = upstreamCaelestiaCli;
+          cryoforgeThemePublisher = phase19dTestThemePublisher;
+          inherit cryoforgeThemePacks;
+          registry = currentThemeRegistry;
+          testFailuresEnabled = true;
+          usePolkit = false;
+        };
       caelestiaCryoforgeThemeSelector =
         pkgs.callPackage ./packages/caelestia-cryoforge-theme-selector.nix {
           caelestiaShellCryoforge = caelestiaCryoforge;
@@ -123,6 +190,7 @@
             cryoforgeThemeRuntime
             upstreamCaelestiaCli
             ;
+          registry = currentThemeRegistry;
         };
       cryoforgeSystem = mkNixos {
         desktopProfile = "caelestia-cryoforge";
@@ -130,8 +198,7 @@
       realGreeterSystem = mkNixos {
         desktopProfile = "caelestia-cryoforge";
         extraModules = [
-          (realGreeterSourceBoundary
-            + "/desktop/caelestia/real-greeter-system.nix")
+          ./desktop/caelestia/real-greeter-system.nix
           {
             # This dedicated audition output must replace the running ReGreet
             # command. The accepted CryoForge output retains greetd's normal
@@ -143,7 +210,12 @@
             systemd.services.greetd.stopIfChanged = nixpkgs.lib.mkForce false;
           }
         ];
-        extraSpecialArgs = { inherit caelestia-shell; };
+        extraSpecialArgs = {
+          inherit
+            caelestia-shell
+            caelestiaRealGreeter
+            ;
+        };
       };
       cryoforgeSystemPre19c = mkNixos {
         cryoforgePackage = caelestiaCryoforge;
@@ -230,7 +302,10 @@
         "packages/cryoforge-theme-runtime.nix"
         "tests/phase19c/test_manual_theme_selection_contract.sh"
       ];
-      realGreeterSourceRoot = toString ./.;
+      # Phase 19D changes the normal greeter. Keep the accepted R3/Phase 19C
+      # source boundary anchored to the committed closure instead of silently
+      # widening the nine-path historical exclusion set.
+      realGreeterSourceRoot = toString phase19cCommittedSource;
       realGreeterSourceRootPrefix = "${realGreeterSourceRoot}/";
       realGreeterRelativePath = path:
         let
@@ -241,7 +316,7 @@
         else nixpkgs.lib.removePrefix realGreeterSourceRootPrefix value;
       uncheckedRealGreeterSourceBoundary = builtins.path {
         name = "nixos-config-real-greeter-r3-source";
-        path = ./.;
+        path = phase19cCommittedSource;
         filter = path: type:
           !(builtins.hasAttr
             (realGreeterRelativePath path)
@@ -672,10 +747,11 @@
       caelestia-real-lock = caelestiaRealLock;
       cryoforge-theme-runtime = cryoforgeThemeRuntime;
       cryoforge-theme-packs = cryoforgeThemePacks;
+      cryoforge-theme-publisher = cryoforgeThemePublisher;
       hyprexpo = pkgs.callPackage ./packages/hyprexpo.nix { };
     };
 
-    checks.${system} = {
+    checks.${system} = ({
       inherit caelestiaRealGreeter;
 
       # Phase 19C focused check begin
@@ -1445,6 +1521,159 @@
           test "$(readlink -f \
             ${realGreeterSystemPre19c.config.system.build.toplevel}/etc/systemd/system/autovt@tty1.service)" = \
             /dev/null
+          touch "$out"
+        '';
+    }) // phase19cHistoricalChecks // {
+      phase19d-cross-surface-theme-continuity-contract =
+        let
+          currentRealGreeterCommand =
+            realGreeterSystem.config.services.greetd.settings
+              .default_session.command;
+          currentRealGreeterGreetdUnit =
+            realGreeterSystem.config.systemd.units."greetd.service".unit;
+          currentRealGreeterPackages = builtins.filter
+            (package:
+              (package.pname or null) == "caelestia-real-greeter")
+            realGreeterSystem.config.environment.systemPackages;
+          currentPublisherPackages = builtins.filter
+            (package:
+              (package.pname or null) == "cryoforge-theme-publisher")
+            realGreeterSystem.config.environment.systemPackages;
+          cryoforgePublisherPackages = builtins.filter
+            (package:
+              (package.pname or null) == "cryoforge-theme-publisher")
+            cryoforgeSystem.config.environment.systemPackages;
+          stockPublisherPackages = builtins.filter
+            (package:
+              (package.pname or null) == "cryoforge-theme-publisher")
+            stockSystem.config.environment.systemPackages;
+          classicPublisherPackages = builtins.filter
+            (package:
+              (package.pname or null) == "cryoforge-theme-publisher")
+            classicSystem.config.environment.systemPackages;
+          registryValidates = candidate:
+            (builtins.tryEval (
+              builtins.deepSeq
+                (themeRegistryModel { registry = candidate; })
+                true
+            )).success;
+          neutralPack = builtins.elemAt currentThemeRegistry.packs 0;
+          chisaPack = builtins.elemAt currentThemeRegistry.packs 1;
+          deniaPack = builtins.elemAt currentThemeRegistry.packs 2;
+          invalidRichRegistries = [
+            (currentThemeRegistry // { schemaVersion = 1; })
+            (currentThemeRegistry // {
+              packs = [
+                neutralPack
+                chisaPack
+                chisaPack
+              ];
+            })
+            (currentThemeRegistry // {
+              packs = [
+                neutralPack
+                (chisaPack // {
+                  assets = chisaPack.assets // {
+                    wallpaper = chisaPack.assets.wallpaper // {
+                      path = "assets/../wallpaper.jpg";
+                    };
+                  };
+                })
+                deniaPack
+              ];
+            })
+            (currentThemeRegistry // {
+              packs = [
+                neutralPack
+                (chisaPack // {
+                  assets = chisaPack.assets // {
+                    wallpaper = chisaPack.assets.wallpaper // {
+                      sha256 = "0";
+                    };
+                  };
+                })
+                deniaPack
+              ];
+            })
+            (currentThemeRegistry // {
+              packs = [
+                (neutralPack // {
+                  allowedWallpaperPackIds = [ "neutral" ];
+                })
+                chisaPack
+                deniaPack
+              ];
+            })
+          ];
+          boundaryEvidence =
+            assert builtins.attrNames requiredHistoricalChecks
+              == builtins.sort builtins.lessThan requiredHistoricalCheckNames;
+            assert registryValidates currentThemeRegistry;
+            assert builtins.all
+              (candidate: !registryValidates candidate)
+              invalidRichRegistries;
+            assert builtins.length currentRealGreeterPackages == 1;
+            assert builtins.head currentRealGreeterPackages
+              == caelestiaRealGreeter;
+            assert builtins.length currentPublisherPackages == 1;
+            assert builtins.head currentPublisherPackages
+              == cryoforgeThemePublisher;
+            assert builtins.length cryoforgePublisherPackages == 1;
+            assert builtins.head cryoforgePublisherPackages
+              == cryoforgeThemePublisher;
+            assert stockPublisherPackages == [ ];
+            assert classicPublisherPackages == [ ];
+            assert realGreeterSystem.config.security.polkit.enable;
+            assert cryoforgeSystem.config.security.polkit.enable;
+            assert
+              realGreeterSystem.config.systemd.tmpfiles.settings
+                ."19d-cryoforge-theme"
+                ."/var/lib/cryoforge-theme"
+                .d.mode
+              == "0755";
+            assert
+              cryoforgeSystem.config.systemd.tmpfiles.settings
+                ."19d-cryoforge-theme"
+                ."/var/lib/cryoforge-theme"
+                .d.mode
+              == "0755";
+            assert
+              realGreeterSystem.config.home-manager.users.accelra
+                .programs.caelestia.package
+              == caelestiaCryoforgeThemeSelector;
+            assert
+              realGreeterSystem.config.home-manager.users.accelra
+                .programs.caelestia.cli.package
+              == cryoforgeCaelestiaCli;
+            builtins.toFile "phase19d-boundary-evidence"
+              "Phase 19D current systems use canonical public identity; historical checks use committed f874758\n";
+        in
+        pkgs.runCommand "phase19d-cross-surface-theme-continuity-contract" {
+          nativeBuildInputs = [
+            pkgs.bash
+            pkgs.coreutils
+            pkgs.findutils
+            pkgs.gnugrep
+            pkgs.gnused
+            pkgs.python3
+            pkgs.strace
+          ];
+        } ''
+          export PYTHON=${pkgs.python3}/bin/python3
+          bash ${./tests/phase19d/test_cross_surface_theme_continuity_contract.sh} \
+            ${./.} \
+            ${cryoforgeThemePacks} \
+            ${cryoforgeThemePublisher} \
+            ${phase19dTestThemePublisher} \
+            ${phase19dTestThemeRuntime} \
+            ${caelestiaCryoforgeThemeSelector}/share/caelestia-shell \
+            ${caelestiaRealGreeter} \
+            ${currentRealGreeterCommand} \
+            ${currentRealGreeterGreetdUnit}/greetd.service \
+            ${realGreeterSystem.config.system.build.toplevel} \
+            ${boundaryEvidence} \
+            ${cryoforgeThemeRuntime} \
+            ${cryoforgeThemeRuntime.publisherInvoker}/bin/cryoforge-invoke-theme-publisher
           touch "$out"
         '';
     };

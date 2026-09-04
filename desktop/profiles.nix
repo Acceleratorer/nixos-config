@@ -4,6 +4,7 @@
   caelestia-shell,
   config,
   lib,
+  phase19dThemeContinuity ? true,
   pkgs,
   ...
 }:
@@ -891,7 +892,7 @@ let
   '';
 
   # Phase 19C wallpaper persistence correction begin
-  initialiseChisaPoolState = pkgs.writeShellScript "initialise-chisa-pool-state" ''
+  phase19cInitialiseChisaPoolState = pkgs.writeShellScript "initialise-chisa-pool-state" ''
     set -eu
 
     home="''${HOME:?HOME is required}"
@@ -1047,6 +1048,34 @@ let
     materialise_current_wallpaper "$wallpaper"
   '';
   # Phase 19C wallpaper persistence correction end
+
+  phase19dReconcileThemeState = pkgs.writeShellScript "reconcile-cryoforge-theme-state" ''
+    set -eu
+
+    home="''${HOME:?HOME is required}"
+    case "$home" in
+      /*) ;;
+      *) exit 1 ;;
+    esac
+    case "/''${home#/}/" in
+      */../* | */./*) exit 1 ;;
+    esac
+    if [ -L "$home" ] || [ -L "$home/.face" ]; then
+      exit 1
+    fi
+
+    ${pkgs.coreutils}/bin/install -d -m 0700 -- "$home"
+    ${pkgs.coreutils}/bin/install -m 0600 \
+      ${chisaPoolAssets}/share/caelestia-chisa-pool/avatar/IMG_5542.jpg \
+      "$home/.face"
+    ${caelestiaCryoforgeThemeSelector.themeRuntime}/bin/cryoforge-apply-theme-pack \
+      --reconcile >/dev/null
+  '';
+
+  initialiseChisaPoolState =
+    if phase19dThemeContinuity
+    then phase19dReconcileThemeState
+    else phase19cInitialiseChisaPoolState;
 
   startClassicFallback = pkgs.writeShellScript "start-classic-fallback" ''
     exec ${pkgs.systemd}/bin/systemctl \
