@@ -106,7 +106,7 @@ expected_files = {
 }
 for pack in curated:
     pack_id = pack["id"]
-    assert re.fullmatch(r"cryoforge-[a-z0-9-]+", pack_id)
+    assert re.fullmatch(r"(?:chisa-pool|cryoforge-[a-z0-9-]+)", pack_id)
     wallpaper = pack["assets"]["wallpaper"]
     thumbnail = pack["assets"]["thumbnail"]
     assert re.fullmatch(r"assets/[a-z0-9-]+/wallpaper\.jpg", wallpaper["path"])

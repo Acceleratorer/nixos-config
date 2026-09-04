@@ -537,7 +537,7 @@ assert len(current_ids) == len(set(current_ids))
 curated = [pack for pack in current["packs"] if pack["kind"] == "curated"]
 assert len(curated) == 18
 for pack in curated:
-    assert re.fullmatch(r"cryoforge-[a-z0-9-]+", pack["id"])
+    assert re.fullmatch(r"(?:chisa-pool|cryoforge-[a-z0-9-]+)", pack["id"])
     assert re.fullmatch(r"assets/[a-z0-9-]+/wallpaper\.jpg", pack["wallpaper"])
     assert re.fullmatch(r"assets/[a-z0-9-]+/preview\.jpg", pack["preview"]["thumbnail"])
     assert set(pack["palette"]) == semantic_keys
