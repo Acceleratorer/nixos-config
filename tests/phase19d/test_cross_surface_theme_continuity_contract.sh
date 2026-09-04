@@ -2,6 +2,15 @@
 
 set -euo pipefail
 
+phase19d_contract_failure() {
+  local status=$?
+  printf 'phase19d contract failure: line=%s command=%s\n' \
+    "${BASH_LINENO[0]}" "$BASH_COMMAND" >&2
+  exit "$status"
+}
+
+trap phase19d_contract_failure ERR
+
 repo_root=${1:?missing repository source root}
 theme_packs=${2:?missing theme-pack output}
 production_publisher_package=${3:?missing production publisher output}
