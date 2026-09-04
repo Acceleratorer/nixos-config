@@ -40,11 +40,14 @@ let
   packSelectionCases = lib.concatStringsSep "\n" (
     map (
       pack:
+      let
+        scheme = renderedSchemes.${pack.id};
+      in
       ''
   ${pack.id})
     phase19d_target_pack=${pack.id}
     phase19d_target_wallpaper_pack=${pack.id}
-    phase19d_target_scheme_path=${lib.escapeShellArg (toString renderedSchemes.${pack.id})}
+    phase19d_target_scheme_path=${lib.escapeShellArg scheme}
     phase19d_target_scheme_sha256=$(sha256sum -- "$phase19d_target_scheme_path")
     phase19d_target_scheme_sha256=''${phase19d_target_scheme_sha256%% *}
     phase19d_target_wallpaper_path=${lib.escapeShellArg "${runtimeRoot}/${pack.assets.wallpaper.path}"}
