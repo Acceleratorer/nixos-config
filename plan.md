@@ -32,6 +32,10 @@ the same context.
   `/nix/store/7k1qr9db019m201gpq9phvhs1a9arp8c-nixos-system-nixos-26.05.6282.2f5a153c270b`
 - On August 30, 2026, a real cold reboot into that generation passed the
   complete wallpaper-persistence and runtime-health gate.
+- Phase 20 accepted current, booted, and next-boot system:
+  `/nix/store/hhz4mng8w119pvk9h42x59vnff88nwg0-nixos-system-nixos-26.05.6282.2f5a153c270b`
+- Generation 57 cold reboot and post-boot health checks passed on September 4,
+  2026. The repository source baseline at that checkpoint was `8974c5e`.
 
 Reference-only upstream clones:
 
@@ -332,17 +336,52 @@ Denia. This current Chisa-to-Denia transition was observed during the
 successful August 30, 2026 cold reboot. “Boot screen” in this context means
 the real `greetd` password-entry screen, not the bootloader or Plymouth.
 
-Phase 19C fixed logged-in wallpaper persistence, but it did not implement
-cross-surface theme continuity. The current static-Chisa greeter is a known
-visual-continuity limitation, not a persistence regression or the permanent
-desired UX.
+At the Phase 19C boundary, logged-in wallpaper persistence was fixed, but
+cross-surface theme continuity was not yet implemented. The static-Chisa
+greeter was a known visual-continuity limitation at that historical boundary,
+not a persistence regression or the permanent desired UX.
 
 The security invariant remains separate: the pre-authentication greeter must
 never read mutable theme or wallpaper state directly from `accelra`'s HOME.
-Future continuity must retain greeter/session/authentication isolation. A
-future greeter may consume only a sanitized, validated system-level active
-theme selection and map it to immutable, approved assets. No such
-system-visible active-theme mechanism exists yet.
+The accepted continuity path retains greeter/session/authentication isolation:
+the greeter consumes only a sanitized, validated system-level active-theme
+selection and maps it to immutable, approved assets. Missing, malformed,
+unsupported, or tampered public state fails closed to the Chisa fallback.
+
+### Phase 19D — Persistent cross-surface theme continuity
+
+- Added a root-owned, minimal public active-theme identity containing schema
+  version, pack ID, wallpaper-pack ID, and generation.
+- Added the fixed-path authenticated publisher and validated resolver.
+- Bound the real greeter to the resolver and immutable packaged schemes/assets,
+  while preserving the greeter/session/authentication boundary.
+- Made Apply publication bounded, compare-and-swap guarded, and rollback-safe
+  for scheme, wallpaper path, and wallpaper symlink projections.
+- Corrected the production invoker to call `/run/wrappers/bin/pkexec`
+  explicitly and preserved bounded refusal stderr for the UI.
+- Covered preview isolation, malformed and tampered public state, stale
+  generation, unsupported IDs, concurrent readers, interruption, and atomic
+  rollback in the Phase 19D contract.
+- Completed the protected live Denia Apply, restart, boot, cold-reboot,
+  lock/unlock, and suspend/resume continuity checks with healthy services,
+  portals, notification ownership, and Hyprland state.
+
+### Phase 20 — All curated theme packs
+
+- Expanded the registry to 19 entries: the Neutral overlay plus 18 curated,
+  immutable wallpaper-backed packs.
+- Kept `neutral` as the semantic-palette overlay and `chisa-pool` as the
+  validated fallback; no automatic switching, rotation, watcher, daemon, or
+  network route was added.
+- Packaged every curated wallpaper, thumbnail, provenance file, and generated
+  Caelestia scheme into the Nix closure and runtime registry.
+- Bound Nexus, the apply helper, resolver, publisher manifest, and real greeter
+  to the same registry-derived pack IDs and pinned asset hashes.
+- Fixed source-closure handling for curated assets, legacy Chisa IDs, and
+  generated scheme paths.
+- Passed the all-curated-pack contract for all 18 packs, the complete flake
+  check, the exact real-greeter build, Generation 57 boot path, cold reboot,
+  visual gallery review, and post-boot health checks.
 
 ## Rejected or intentionally excluded work
 
@@ -415,7 +454,7 @@ Completed against repository baseline
 - The real-greeter recovery action returned to the recovery login as designed.
 - `main` remained clean and synchronized with `origin/main`.
 
-R2, Phase 19A, Phase 19B, and Phase 19C are complete.
+R2, Phase 19A, Phase 19B, Phase 19C, Phase 19D, and Phase 20 are complete.
 
 ### Phase 19C — Manual Nexus theme selection (completed)
 
@@ -433,10 +472,11 @@ and notification ownership all passed.
 
 ### Phase 19D — Persistent cross-surface theme continuity
 
-Status: next planned phase; implementation has not begun.
+Status: completed. The implementation and live acceptance evidence are recorded
+in the completed-phases section above.
 
-The product requirement is that the last successfully Applied approved theme
-pack remains visually consistent across:
+The accepted continuity target is that the last successfully Applied approved
+theme pack remains visually consistent across:
 
 - the logged-in Caelestia shell;
 - wallpaper;
@@ -446,7 +486,7 @@ pack remains visually consistent across:
 - shutdown and the next cold-boot real `greetd` password screen; and
 - the subsequent logged-in session.
 
-Expected examples:
+Accepted examples:
 
 - Apply Chisa: shell, lock, suspend/resume, next greeter, and next login remain
   Chisa.
@@ -456,13 +496,13 @@ Expected examples:
   selection.
 - A failed Apply must not partially publish a new system-visible selection.
 
-The system is intended to support many curated wallpaper-backed theme packs,
-not only Chisa and Denia. Candidate wallpapers become eligible only after
+The system supports many curated wallpaper-backed theme packs, not only Chisa
+and Denia. Candidate wallpapers become eligible only after
 promotion into explicit approved theme packs with stable IDs, curated
 palettes, immutable packaged assets, and pinned hashes. Candidate-board
 wallpapers are not already packaged theme packs.
 
-Architectural and safety requirements:
+Implemented architectural and safety guarantees:
 
 - Represent Chisa as an explicit approved theme pack, not only an implicit
   fallback.
@@ -491,14 +531,23 @@ Neutral semantics remain explicit:
 
 - Neutral changes the semantic palette.
 - Neutral preserves the currently selected wallpaper.
-- The preserved wallpaper identity remains available to the lock and future
-  greeter continuity mechanism.
+- The preserved wallpaper identity remains available to the lock and greeter
+  continuity mechanism.
 - Neutral is not Chisa.
+
+### Phase 20 — All curated theme packs (completed)
+
+The registry-backed Nexus gallery now exposes 18 curated wallpaper/theme packs
+alongside the Neutral overlay. Each curated pack has a stable ID, curated
+palette, immutable packaged assets, provenance, generated scheme, and pinned
+hashes. The full Phase 20 contract applies every curated pack through the same
+resolver and transactional helper and verifies generation progression,
+wallpaper projections, scheme identity, and cleanup.
 
 ### Phase 19E — Bounded application integration
 
-Application integration remains separate and follows only after Phase 19D is
-accepted:
+Application integration remains separate and follows only after the completed
+Phase 19D continuity foundation:
 
 - Add opt-in Kitty and Fastfetch theme adapters.
 - Consider bounded GTK/Qt integration only if ownership is clear.
@@ -523,8 +572,11 @@ A phase is complete only when:
 - The change is committed directly to `main` and pushed.
 - README and this plan remain consistent with the repository state.
 
-R2, Phase 19A, Phase 19B, and Phase 19C, including the wallpaper-persistence
-correction and real cold-reboot checkpoint, are complete. Phase 19D persistent
-cross-surface theme continuity is next planned but has not begun and requires
-its own fresh Gate 0. Phase 19E bounded application integration follows only
-after Phase 19D is accepted.
+R2, Phase 19A, Phase 19B, Phase 19C, Phase 19D, and Phase 20, including the
+wallpaper-persistence correction, cross-surface continuity, all-curated-pack
+contract, and Generation 57 cold-reboot checkpoint, are complete. The next
+work is a read-only Serpantinum architecture comparison followed by a
+separately scoped integration design. Serpantinum's Matugen-generated palette
+and wallpaper state must not replace CryoForge's immutable registry and
+canonical publisher without a new phase and explicit contract. Phase 19E
+bounded application integration remains a separate future decision.
