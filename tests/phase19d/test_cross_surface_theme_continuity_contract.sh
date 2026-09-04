@@ -622,8 +622,8 @@ helper_neutral_scheme=$(sed -n 's/^readonly phase19d_neutral_scheme=//p' "$helpe
 helper_scheme_path_for() {
   local pack_id=$1
 
-  sed -n "/^  ${pack_id})$/,/^    ;;$/p" "$helper" |
-    sed -n 's/^    phase19d_target_scheme_path=//p'
+  sed -n "/^[[:space:]]*${pack_id})$/,/^[[:space:]]*;;$/p" "$helper" |
+    sed -n 's/^[[:space:]]*phase19d_target_scheme_path=//p'
 }
 
 helper_chisa_scheme=$(helper_scheme_path_for chisa-pool)
