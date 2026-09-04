@@ -12,6 +12,7 @@ let
   deniaWallpaper = ../desktop/themes/cryoforge-denia/wallpaper.jpg;
   deniaPreview = ../desktop/themes/cryoforge-denia/preview.jpg;
   deniaSource = ../desktop/themes/cryoforge-denia/SOURCE.md;
+  generatedSourceAssetRoot = ../desktop/themes;
   packIds = map (pack: pack.id) registry.packs;
   hasPack = id: builtins.elem id packIds;
   curatedPacks = builtins.filter (pack: pack.kind == "curated") registry.packs;
@@ -19,9 +20,9 @@ let
     map (pack: {
       name = pack.id;
       value = {
-        wallpaper = builtins.toPath "${toString ../desktop/themes}/${pack.id}/wallpaper.jpg";
-        preview = builtins.toPath "${toString ../desktop/themes}/${pack.id}/preview.jpg";
-        source = builtins.toPath "${toString ../desktop/themes}/${pack.id}/SOURCE.md";
+        wallpaper = generatedSourceAssetRoot + "/${pack.id}/wallpaper.jpg";
+        preview = generatedSourceAssetRoot + "/${pack.id}/preview.jpg";
+        source = generatedSourceAssetRoot + "/${pack.id}/SOURCE.md";
       };
     }) (builtins.filter (pack: pack.id != "chisa-pool" && pack.id != "cryoforge-denia") curatedPacks)
   );
