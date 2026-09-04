@@ -628,11 +628,17 @@ helper_scheme_path_for() {
 
 helper_chisa_scheme=$(helper_scheme_path_for chisa-pool)
 helper_denia_scheme=$(helper_scheme_path_for cryoforge-denia)
-for scheme_path in \
-  "$helper_chisa_scheme" \
-  "$helper_neutral_scheme" \
-  "$helper_denia_scheme"; do
-  test -f "$scheme_path"
+for scheme_label in chisa neutral denia; do
+  case "$scheme_label" in
+    chisa) scheme_path=$helper_chisa_scheme ;;
+    neutral) scheme_path=$helper_neutral_scheme ;;
+    denia) scheme_path=$helper_denia_scheme ;;
+  esac
+  if ! test -f "$scheme_path"; then
+    printf 'phase19d scheme path unavailable: label=%s path=%q\n' \
+      "$scheme_label" "$scheme_path" >&2
+    exit 1
+  fi
   test ! -L "$scheme_path"
   case "$scheme_path" in
     /nix/store/*) ;;
