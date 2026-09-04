@@ -20,6 +20,7 @@
 let
   runtimeRoot = "${cryoforgeThemePacks}/share/cryoforge/theme-packs";
   packIds = map (pack: pack.id) registry.packs;
+  curatedPacks = builtins.filter (pack: pack.kind == "curated") registry.packs;
   renderedSchemes = builtins.mapAttrs (
     id: scheme:
     builtins.toFile "cryoforge-${id}-caelestia-scheme.json" (
@@ -35,6 +36,23 @@ let
       + "\n"
     )
   ) caelestiaSchemes;
+  approvedPackIdPattern = lib.concatStringsSep " | " packIds;
+  packSelectionCases = lib.concatStringsSep "\n" (
+    map (
+      pack:
+      ''
+  ${pack.id})
+    phase19d_target_pack=${pack.id}
+    phase19d_target_wallpaper_pack=${pack.id}
+    phase19d_target_scheme_path=${lib.escapeShellArg (toString renderedSchemes.${pack.id})}
+    phase19d_target_scheme_sha256=$(sha256sum -- "$phase19d_target_scheme_path")
+    phase19d_target_scheme_sha256=''${phase19d_target_scheme_sha256%% *}
+    phase19d_target_wallpaper_path=${lib.escapeShellArg "${runtimeRoot}/${pack.assets.wallpaper.path}"}
+    phase19d_target_wallpaper_sha256=${pack.assets.wallpaper.sha256}
+    ;;
+''
+    ) curatedPacks
+  );
   caelestiaPythonLibDir =
     let
       candidates = lib.filter (name: lib.hasPrefix "python" name) (
@@ -183,10 +201,10 @@ let
         "@PUBLICATION_ENABLED@"
         "@TEST_FAILURES_ENABLED@"
         "@NEUTRAL_SCHEME@"
-        "@CHISA_SCHEME@"
         "@DENIA_SCHEME@"
-        "@CHISA_WALLPAPER@"
         "@DENIA_WALLPAPER@"
+        "@APPROVED_PACK_IDS@"
+        "@PACK_SELECTION_CASES@"
         "@RESOLVER@"
         "@PUBLISHER_INVOKER@"
         "@PYTHON@"
@@ -195,10 +213,10 @@ let
         (if publicationEnabled then "1" else "0")
         (if testFailuresEnabled then "1" else "0")
         (lib.escapeShellArg renderedSchemes.neutral)
-        (lib.escapeShellArg (renderedSchemes.chisa-pool or renderedSchemes.neutral))
         (lib.escapeShellArg renderedSchemes.cryoforge-denia)
-        (lib.escapeShellArg "${runtimeRoot}/assets/chisa-pool/wallpaper.jpg")
         (lib.escapeShellArg "${runtimeRoot}/assets/cryoforge-denia/wallpaper.jpg")
+        approvedPackIdPattern
+        packSelectionCases
         (lib.escapeShellArg "${resolver}/bin/cryoforge-resolve-active-theme")
         (lib.escapeShellArg "${publisherInvoker}/bin/cryoforge-invoke-theme-publisher")
         (lib.escapeShellArg "${python3}/bin/python3")
@@ -208,13 +226,8 @@ let
 in
 assert lib.assertMsg (
   !publicationEnabled
-  || packIds
-  == [
-    "neutral"
-    "chisa-pool"
-    "cryoforge-denia"
-  ]
-) "Phase 19D runtime requires the exact approved pack order";
+  || builtins.length packIds >= 1
+) "CryoForge runtime requires at least one registry pack";
 assert lib.assertMsg (
   builtins.attrNames caelestiaSchemes == builtins.sort builtins.lessThan packIds
 ) "CryoForge runtime schemes must be registry-derived";

@@ -1,4 +1,5 @@
 {
+  lib,
   stdenvNoCC,
   registry ? import ../desktop/themes/registry.nix { },
   version ? "1.2.0",
@@ -13,6 +14,56 @@ let
   deniaSource = ../desktop/themes/cryoforge-denia/SOURCE.md;
   packIds = map (pack: pack.id) registry.packs;
   hasPack = id: builtins.elem id packIds;
+  curatedPacks = builtins.filter (pack: pack.kind == "curated") registry.packs;
+  generatedSourceAssets = builtins.listToAttrs (
+    map (pack: {
+      name = pack.id;
+      value = {
+        wallpaper = builtins.toPath "${toString ../desktop/themes}/${pack.id}/wallpaper.jpg";
+        preview = builtins.toPath "${toString ../desktop/themes}/${pack.id}/preview.jpg";
+        source = builtins.toPath "${toString ../desktop/themes}/${pack.id}/SOURCE.md";
+      };
+    }) (builtins.filter (pack: pack.id != "chisa-pool" && pack.id != "cryoforge-denia") curatedPacks)
+  );
+  sourceAssets = generatedSourceAssets // {
+    chisa-pool = {
+      wallpaper = chisaWallpaper;
+      preview = chisaWallpaper;
+      source = chisaSource;
+    };
+    cryoforge-denia = {
+      wallpaper = deniaWallpaper;
+      preview = deniaPreview;
+      source = deniaSource;
+    };
+  };
+  curatedAssetAssertions = builtins.all (
+    pack:
+    let
+      source = sourceAssets.${pack.id};
+    in
+    builtins.hashFile "sha256" source.wallpaper == pack.assets.wallpaper.sha256
+    && builtins.hashFile "sha256" source.preview == pack.assets.thumbnail.sha256
+  ) curatedPacks;
+  curatedAssetInstallCommands = lib.concatStringsSep "\n" (
+    map (
+      pack:
+      let
+        source = sourceAssets.${pack.id};
+      in
+      ''
+        install -Dm0444 \
+          ${source.wallpaper} \
+          "$out/share/cryoforge/theme-packs/${pack.assets.wallpaper.path}"
+        install -Dm0444 \
+          ${source.preview} \
+          "$out/share/cryoforge/theme-packs/${pack.assets.thumbnail.path}"
+        install -Dm0444 \
+          ${source.source} \
+          "$out/share/cryoforge/theme-packs/assets/${pack.id}/SOURCE.md"
+      ''
+    ) curatedPacks
+  );
   runtimeProjection = {
     schemaVersion = 1;
     defaultPackId = registry.defaultPackId;
@@ -50,6 +101,7 @@ assert
   || !hasPack "cryoforge-denia"
   || builtins.hashFile "sha256" deniaPreview
   == "f67c58a530a4e44c491937e13e33b36aedf9e6ac8b0fca8a25ba6c6696824045";
+assert !includeCuratedAssets || curatedAssetAssertions;
 stdenvNoCC.mkDerivation {
   pname = "cryoforge-theme-packs";
   inherit version;
@@ -64,32 +116,12 @@ stdenvNoCC.mkDerivation {
     install -Dm0444 \
       ${renderedRuntimeRegistry} \
       "$out/share/cryoforge/theme-packs/registry.json"
-    install -Dm0444 \
-      ${renderedSourceRegistry} \
-      "$out/share/cryoforge/theme-packs/source-registry.json"
 
-    ${if includeCuratedAssets && hasPack "chisa-pool" then ''
+    ${if includeCuratedAssets then curatedAssetInstallCommands else ""}
+    ${if includeCuratedAssets then ''
       install -Dm0444 \
-        ${chisaWallpaper} \
-        "$out/share/cryoforge/theme-packs/assets/chisa-pool/wallpaper.jpg"
-      install -Dm0444 \
-        ${chisaWallpaper} \
-        "$out/share/cryoforge/theme-packs/assets/chisa-pool/preview.jpg"
-      install -Dm0444 \
-        ${chisaSource} \
-        "$out/share/cryoforge/theme-packs/assets/chisa-pool/SOURCE.md"
-    '' else ""}
-
-    ${if includeCuratedAssets && hasPack "cryoforge-denia" then ''
-      install -Dm0444 \
-        ${deniaWallpaper} \
-        "$out/share/cryoforge/theme-packs/assets/cryoforge-denia/wallpaper.jpg"
-      install -Dm0444 \
-        ${deniaPreview} \
-        "$out/share/cryoforge/theme-packs/assets/cryoforge-denia/preview.jpg"
-      install -Dm0444 \
-        ${deniaSource} \
-        "$out/share/cryoforge/theme-packs/assets/cryoforge-denia/SOURCE.md"
+        ${renderedSourceRegistry} \
+        "$out/share/cryoforge/theme-packs/source-registry.json"
     '' else ""}
 
     runHook postInstall

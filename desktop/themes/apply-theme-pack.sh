@@ -427,9 +427,7 @@ if [[ "$phase19d_publication_enabled" == 0 ]]; then
   exit
 fi
 
-readonly phase19d_chisa_scheme=@CHISA_SCHEME@
 readonly phase19d_neutral_scheme=@NEUTRAL_SCHEME@
-readonly phase19d_denia_scheme=@DENIA_SCHEME@
 readonly phase19d_resolver=@RESOLVER@
 readonly phase19d_publisher_invoker=@PUBLISHER_INVOKER@
 readonly phase19d_python=@PYTHON@
@@ -942,10 +940,10 @@ trap 'phase19d_interrupt 130' INT
 trap 'phase19d_interrupt 143' TERM
 
 [[ $# -eq 1 ]] || phase19d_fail \
-  "usage: cryoforge-apply-theme-pack --reconcile|neutral|chisa-pool|cryoforge-denia"
+  "usage: cryoforge-apply-theme-pack --reconcile|@APPROVED_PACK_IDS@"
 readonly phase19d_request=$1
 case "$phase19d_request" in
-  --reconcile | neutral | chisa-pool | cryoforge-denia) ;;
+  --reconcile | @APPROVED_PACK_IDS@) ;;
   *) phase19d_fail "unsupported pack id: $phase19d_request" ;;
 esac
 
@@ -1008,24 +1006,7 @@ case "$phase19d_request" in
     phase19d_target_wallpaper_path=$phase19d_current_wallpaper_path
     phase19d_target_wallpaper_sha256=$phase19d_current_wallpaper_sha256
     ;;
-  chisa-pool)
-    phase19d_target_pack=chisa-pool
-    phase19d_target_wallpaper_pack=chisa-pool
-    phase19d_target_scheme_path=$phase19d_chisa_scheme
-    phase19d_target_scheme_sha256=$(sha256sum -- "$phase19d_target_scheme_path")
-    phase19d_target_scheme_sha256=${phase19d_target_scheme_sha256%% *}
-    phase19d_target_wallpaper_path=@CHISA_WALLPAPER@
-    phase19d_target_wallpaper_sha256=a4dfcf92c4170405ac37102b27c606c5e9b1bb6cd77c9f04d530fa752aab604c
-    ;;
-  cryoforge-denia)
-    phase19d_target_pack=cryoforge-denia
-    phase19d_target_wallpaper_pack=cryoforge-denia
-    phase19d_target_scheme_path=$phase19d_denia_scheme
-    phase19d_target_scheme_sha256=$(sha256sum -- "$phase19d_target_scheme_path")
-    phase19d_target_scheme_sha256=${phase19d_target_scheme_sha256%% *}
-    phase19d_target_wallpaper_path=@DENIA_WALLPAPER@
-    phase19d_target_wallpaper_sha256=34e9569bd827a07c20715d6b14c09603c60755d4a9d829ed6b542fff6f3fefcb
-    ;;
+@PACK_SELECTION_CASES@
 esac
 
 [[ -f "$phase19d_target_scheme_path" && ! -L "$phase19d_target_scheme_path" ]] \

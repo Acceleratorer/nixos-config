@@ -87,19 +87,12 @@ let
 in
 assert lib.assertMsg (
   builtins.attrNames caelestiaSchemes
-  == [
-    "chisa-pool"
-    "cryoforge-denia"
-    "neutral"
-  ]
-) "Phase 19D publisher requires the exact approved theme IDs";
+  == builtins.sort builtins.lessThan (map (pack: pack.id) registry.packs)
+) "CryoForge publisher schemes must be registry-derived";
 assert lib.assertMsg (
   builtins.attrNames wallpaperManifest
-  == [
-    "chisa-pool"
-    "cryoforge-denia"
-  ]
-) "Phase 19D publisher requires the exact approved wallpaper IDs";
+  == builtins.sort builtins.lessThan (map (pack: pack.id) wallpaperPacks)
+) "CryoForge publisher wallpapers must be registry-derived";
 stdenvNoCC.mkDerivation {
   pname = "cryoforge-theme-publisher";
   version = "1.0.0";

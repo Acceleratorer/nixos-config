@@ -167,8 +167,36 @@ allowed_paths=(
   "desktop/caelestia/real-greeter/GreeterContent.qml"
   "desktop/caelestia/real-greeter/services/Wallpapers.qml"
   "flake.nix"
+  "tests/phase19b/test_first_curated_theme_contract.sh"
   "tests/phase19d/test_cross_surface_theme_continuity_contract.sh"
+  "tests/phase20/test_all_curated_theme_packs_contract.sh"
 )
+cooked_pack_ids=(
+  "cryoforge-chisa-pool-mirror"
+  "cryoforge-wallhaven-k8ljxd"
+  "cryoforge-pixiv-115550491"
+  "cryoforge-pixiv-129183437"
+  "cryoforge-pixiv-125244568"
+  "cryoforge-pixiv-132131646"
+  "cryoforge-pixiv-148651669"
+  "cryoforge-pixiv-103199586"
+  "cryoforge-pixiv-146159627"
+  "cryoforge-pixiv-131599235"
+  "cryoforge-pixiv-124952563"
+  "cryoforge-local-hnny-vtwuaark-l"
+  "cryoforge-pixiv-139029721"
+  "cryoforge-pixiv-131466322"
+  "cryoforge-pixiv-148651017"
+  "cryoforge-pixiv-145248543"
+)
+for pack_id in "${cooked_pack_ids[@]}"; do
+  allowed_paths+=(
+    "desktop/themes/$pack_id/SOURCE.md"
+    "desktop/themes/$pack_id/pack.nix"
+    "desktop/themes/$pack_id/preview.jpg"
+    "desktop/themes/$pack_id/wallpaper.jpg"
+  )
+done
 
 if git -C "$repo_root" rev-parse --git-dir >/dev/null 2>&1; then
   actual_paths=$(
@@ -188,6 +216,7 @@ fi
 # Registry and package projections are exact, finite, and asset-pinned.
 "$python" - "$source_registry" "$gallery_registry" "$manifest" "$runtime_root" <<'PY'
 import json
+import hashlib
 import pathlib
 import re
 import sys
@@ -211,19 +240,16 @@ assert set(source) == {"schemaVersion", "defaultPackId", "fallbackPackId", "pack
 assert source["schemaVersion"] == 2
 assert source["defaultPackId"] == "neutral"
 assert source["fallbackPackId"] == "chisa-pool"
-assert [pack["id"] for pack in source["packs"]] == [
-    "neutral",
-    "chisa-pool",
-    "cryoforge-denia",
-]
+source_ids = [pack["id"] for pack in source["packs"]]
+assert source_ids[0] == "neutral"
+assert len(source_ids) == 19
+assert len(source_ids) == len(set(source_ids))
 
 packs = {pack["id"]: pack for pack in source["packs"]}
 assert packs["neutral"]["kind"] == "overlay"
 assert packs["neutral"]["assets"] == {"wallpaper": None, "thumbnail": None}
-assert packs["neutral"]["allowedWallpaperPackIds"] == [
-    "chisa-pool",
-    "cryoforge-denia",
-]
+curated_ids = [pack_id for pack_id in source_ids if pack_id != "neutral"]
+assert packs["neutral"]["allowedWallpaperPackIds"] == curated_ids
 assert packs["chisa-pool"]["fallback"] == {
     "missingPublicState": True,
     "invalidPublicState": True,
@@ -238,50 +264,47 @@ assert packs["cryoforge-denia"]["assets"]["wallpaper"]["sha256"] == (
     "34e9569bd827a07c20715d6b14c09603c60755d4a9d829ed6b542fff6f3fefcb"
 )
 
+for pack in source["packs"]:
+    assert set(pack) == {
+        "id", "displayName", "kind", "allowedWallpaperPackIds", "assets",
+        "palette", "scheme", "presentation", "preview", "fallback",
+    }
+    if pack["kind"] == "curated":
+        assert pack["allowedWallpaperPackIds"] == [pack["id"]]
+        assert pack["assets"]["wallpaper"] is not None
+        assert pack["assets"]["thumbnail"] is not None
+        for asset in pack["assets"].values():
+            assert re.fullmatch(r"assets/[a-z0-9-]+/(wallpaper|preview)\.jpg", asset["path"])
+            assert re.fullmatch(r"[0-9a-f]{64}", asset["sha256"])
+
 assert set(gallery) == {"schemaVersion", "defaultPackId", "packs"}
 assert gallery["schemaVersion"] == 1
-assert [pack["id"] for pack in gallery["packs"]] == [
-    "neutral",
-    "chisa-pool",
-    "cryoforge-denia",
-]
+assert [pack["id"] for pack in gallery["packs"]] == source_ids
 assert gallery["packs"][0]["wallpaper"] is None
 assert gallery["packs"][1]["wallpaper"] == "assets/chisa-pool/wallpaper.jpg"
 assert gallery["packs"][2]["wallpaper"] == "assets/cryoforge-denia/wallpaper.jpg"
 
 assert set(manifest) == {"schemaVersion", "packs", "wallpapers"}
 assert manifest["schemaVersion"] == 1
-assert sorted(manifest["packs"]) == [
-    "chisa-pool",
-    "cryoforge-denia",
-    "neutral",
-]
-assert sorted(manifest["wallpapers"]) == ["chisa-pool", "cryoforge-denia"]
-assert manifest["packs"]["neutral"]["allowedWallpaperPackIds"] == [
-    "chisa-pool",
-    "cryoforge-denia",
-]
+assert sorted(manifest["packs"]) == sorted(source_ids)
+assert sorted(manifest["wallpapers"]) == sorted(curated_ids)
+assert manifest["packs"]["neutral"]["allowedWallpaperPackIds"] == curated_ids
 
-for pack_id in ("neutral", "chisa-pool", "cryoforge-denia"):
+for pack_id in source_ids:
     scheme = pathlib.Path(manifest["packs"][pack_id]["scheme"]["path"])
     assert scheme.is_file()
     assert re.fullmatch(r"[0-9a-f]{64}", manifest["packs"][pack_id]["scheme"]["sha256"])
     assert (runtime_root / "schemes" / f"{pack_id}.json").is_file()
 
-for pack_id in ("chisa-pool", "cryoforge-denia"):
+for pack_id in curated_ids:
     wallpaper = pathlib.Path(manifest["wallpapers"][pack_id]["wallpaper"]["path"])
     thumbnail = pathlib.Path(manifest["wallpapers"][pack_id]["thumbnail"]["path"])
     assert wallpaper.is_file() and thumbnail.is_file()
     assert str(wallpaper).startswith("/nix/store/")
     assert str(thumbnail).startswith("/nix/store/")
+    assert hashlib.sha256(wallpaper.read_bytes()).hexdigest() == packs[pack_id]["assets"]["wallpaper"]["sha256"]
+    assert hashlib.sha256(thumbnail.read_bytes()).hexdigest() == packs[pack_id]["assets"]["thumbnail"]["sha256"]
 PY
-
-test "$(sha256 "$runtime_root/assets/chisa-pool/wallpaper.jpg")" = \
-  a4dfcf92c4170405ac37102b27c606c5e9b1bb6cd77c9f04d530fa752aab604c
-test "$(sha256 "$runtime_root/assets/chisa-pool/preview.jpg")" = \
-  a4dfcf92c4170405ac37102b27c606c5e9b1bb6cd77c9f04d530fa752aab604c
-test "$(sha256 "$runtime_root/assets/cryoforge-denia/wallpaper.jpg")" = \
-  34e9569bd827a07c20715d6b14c09603c60755d4a9d829ed6b542fff6f3fefcb
 
 # The dedicated action is narrow and the publisher is root-only in production.
 grep -Fq '<action id="org.cryoforge.theme.publish">' "$policy"
@@ -586,9 +609,16 @@ helper_resolver=$(sed -n 's/^readonly phase19d_resolver=//p' "$helper")
 test "$(grep -Fc "$helper_resolver" "$helper")" -eq 1
 helper_invoker=$(sed -n 's/^readonly phase19d_publisher_invoker=//p' "$helper")
 test "$(grep -Fc "$helper_invoker" "$helper")" -eq 1
-helper_chisa_scheme=$(sed -n 's/^readonly phase19d_chisa_scheme=//p' "$helper")
 helper_neutral_scheme=$(sed -n 's/^readonly phase19d_neutral_scheme=//p' "$helper")
-helper_denia_scheme=$(sed -n 's/^readonly phase19d_denia_scheme=//p' "$helper")
+helper_scheme_path_for() {
+  local pack_id=$1
+
+  sed -n "/^  ${pack_id})$/,/^    ;;$/p" "$helper" |
+    sed -n 's/^    phase19d_target_scheme_path=//p'
+}
+
+helper_chisa_scheme=$(helper_scheme_path_for chisa-pool)
+helper_denia_scheme=$(helper_scheme_path_for cryoforge-denia)
 for scheme_path in \
   "$helper_chisa_scheme" \
   "$helper_neutral_scheme" \

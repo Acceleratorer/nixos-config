@@ -118,6 +118,10 @@
         url = "file:///home/accelra/Github/nixos-config";
         rev = "f874758a2b710093025bfa3f0dc2f799cd1283f7";
       };
+      phase19aCommittedSource = builtins.fetchGit {
+        url = "file:///home/accelra/Github/nixos-config";
+        rev = "922509819de8c4040ba522c4e243c46094422438";
+      };
       phase19cHistoricalRuntime = builtins.getFlake
         "git+file:///home/accelra/Github/nixos-config?rev=f874758a2b710093025bfa3f0dc2f799cd1283f7";
       phase19cHistoricalChecks =
@@ -652,11 +656,7 @@
         '';
       # Phase 19C historical projection end
       phase19aRegistrySourceText =
-        replaceExactly
-          "Phase 19A registry"
-          "      (import ./cryoforge-denia/pack.nix)\n"
-          ""
-          (builtins.readFile ./desktop/themes/registry.nix);
+        builtins.readFile "${phase19aCommittedSource}/desktop/themes/registry.nix";
       phase19aRegistrySource =
         assert nixpkgs.lib.assertMsg (
           builtins.hashString "sha256" phase19aRegistrySourceText
@@ -1674,6 +1674,24 @@
             ${boundaryEvidence} \
             ${cryoforgeThemeRuntime} \
             ${cryoforgeThemeRuntime.publisherInvoker}/bin/cryoforge-invoke-theme-publisher
+          touch "$out"
+        '';
+      phase20-all-curated-theme-packs-contract =
+        pkgs.runCommand "phase20-all-curated-theme-packs-contract-tests" {
+          nativeBuildInputs = [
+            pkgs.bash
+            pkgs.coreutils
+            pkgs.findutils
+            pkgs.gnugrep
+            pkgs.python3
+          ];
+        } ''
+          export PYTHON=${pkgs.python3}/bin/python3
+          bash ${./tests/phase20/test_all_curated_theme_packs_contract.sh} \
+            ${./.} \
+            ${cryoforgeThemePacks} \
+            ${phase19dTestThemePublisher} \
+            ${phase19dTestThemeRuntime}
           touch "$out"
         '';
     };

@@ -11,6 +11,22 @@
         allowedWallpaperPackIds = [
           "chisa-pool"
           "cryoforge-denia"
+          "cryoforge-chisa-pool-mirror"
+          "cryoforge-wallhaven-k8ljxd"
+          "cryoforge-pixiv-115550491"
+          "cryoforge-pixiv-129183437"
+          "cryoforge-pixiv-125244568"
+          "cryoforge-pixiv-132131646"
+          "cryoforge-pixiv-148651669"
+          "cryoforge-pixiv-103199586"
+          "cryoforge-pixiv-146159627"
+          "cryoforge-pixiv-131599235"
+          "cryoforge-pixiv-124952563"
+          "cryoforge-local-hnny-vtwuaark-l"
+          "cryoforge-pixiv-139029721"
+          "cryoforge-pixiv-131466322"
+          "cryoforge-pixiv-148651017"
+          "cryoforge-pixiv-145248543"
         ];
         assets = {
           wallpaper = null;
@@ -106,6 +122,22 @@
           };
         }
       )
+      (import ./cryoforge-chisa-pool-mirror/pack.nix)
+      (import ./cryoforge-wallhaven-k8ljxd/pack.nix)
+      (import ./cryoforge-pixiv-115550491/pack.nix)
+      (import ./cryoforge-pixiv-129183437/pack.nix)
+      (import ./cryoforge-pixiv-125244568/pack.nix)
+      (import ./cryoforge-pixiv-132131646/pack.nix)
+      (import ./cryoforge-pixiv-148651669/pack.nix)
+      (import ./cryoforge-pixiv-103199586/pack.nix)
+      (import ./cryoforge-pixiv-146159627/pack.nix)
+      (import ./cryoforge-pixiv-131599235/pack.nix)
+      (import ./cryoforge-pixiv-124952563/pack.nix)
+      (import ./cryoforge-local-hnny-vtwuaark-l/pack.nix)
+      (import ./cryoforge-pixiv-139029721/pack.nix)
+      (import ./cryoforge-pixiv-131466322/pack.nix)
+      (import ./cryoforge-pixiv-148651017/pack.nix)
+      (import ./cryoforge-pixiv-145248543/pack.nix)
     ];
   },
 }:

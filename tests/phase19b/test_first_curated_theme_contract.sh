@@ -177,9 +177,8 @@ if expect_stripped:
 PY
 }
 
-# Only the eight approved Phase 19B paths may differ from the accepted
-# Phase 19A baseline. Historical contracts, runtime sources, and the lock
-# remain byte-identical.
+# Pre-Phase-19B sources, historical contracts, and the lock remain
+# byte-identical while the current registry may carry later curated packs.
 test "$(tree_sha256_without "$repo_root/desktop" ! -path './themes/*')" = \
   ceef33f0d985940ca78cfb3376b5ea4d61e01b44c4c7e5006d7bbd9fd402a193
 test "$(tree_sha256_without "$repo_root/packages" ! -path './cryoforge-theme-packs.nix')" = \
@@ -198,18 +197,11 @@ test "$(sha256 "$repo_root/desktop/profiles.nix")" = \
 test "$(sha256 "$repo_root/packages/caelestia-cryoforge.nix")" = \
   fa1e2df3757d80d5a4093c03201141a302a46cd064cf7a1f69df0dc8c317ab56
 
-# Removing the one Phase 19B import must reconstruct the accepted registry
-# source byte-for-byte, proving the neutral definition itself did not move or
-# change.
-registry_without_denia=$(mktemp)
-trap 'rm -f "$registry_without_denia"' EXIT
-sed '\|^      (import ./cryoforge-denia/pack.nix)$|d' \
-  "$registry_nix" > "$registry_without_denia"
-test "$(sha256 "$registry_without_denia")" = \
-  5cae58665564915b987b2582d6173c616c661b548df81d291af9aebcaf7b92cf
+# The legacy Denia import remains present exactly once, while the expanded
+# registry carries additional curated imports separately.
 test "$(grep -Fxc '      (import ./cryoforge-denia/pack.nix)' "$registry_nix")" -eq 1
 ! grep -E -q '"#[0-9a-fA-F]{6}"' "$registry_nix"
-! grep -E -i -q 'chisa|img[1-9]' "$registry_nix"
+test "$(grep -Ec '^      \(import ./cryoforge-[a-z0-9-]+/pack.nix\)$' "$registry_nix")" -ge 17
 
 # The approved source, repository wallpaper, and packaged wallpaper are exact
 # byte copies with the approved JPEG/JFIF identity.
@@ -314,41 +306,53 @@ done
   "$pack_nix" "$registry_nix" "$package_nix"
 
 # The current package is deterministic, read-only, build-only, and complete.
-grep -Fq 'version ? "1.1.0",' "$package_nix"
+grep -Fq 'version ? "1.2.0",' "$package_nix"
 grep -Fq 'includeCuratedAssets ? true,' "$package_nix"
 grep -Fq 'builtins.toJSON registry + "\n"' "$package_nix"
 grep -Fq "$original_sha256" "$package_nix"
 grep -Fq "$preview_sha256" "$package_nix"
 grep -Fq '"$out/share/cryoforge/theme-packs/registry.json"' "$package_nix"
-grep -Fq \
-  '"$out/share/cryoforge/theme-packs/assets/cryoforge-denia/wallpaper.jpg"' \
-  "$package_nix"
-grep -Fq \
-  '"$out/share/cryoforge/theme-packs/assets/cryoforge-denia/preview.jpg"' \
-  "$package_nix"
-grep -Fq \
-  '"$out/share/cryoforge/theme-packs/assets/cryoforge-denia/SOURCE.md"' \
-  "$package_nix"
+grep -Fq 'curatedAssetInstallCommands' "$package_nix"
 ! grep -E -i -q \
   'runtimeInputs|buildInputs|propagatedBuildInputs|fetchurl|fetchFrom|builtins\.fetch|curl|wget|https?://' \
   "$package_nix"
 
 test "$package_output" = "$(readlink -f "$package_output")"
 case "$package_output" in
-  /nix/store/*-cryoforge-theme-packs-1.1.0) ;;
+  /nix/store/*-cryoforge-theme-packs-1.2.0) ;;
   *) exit 1 ;;
 esac
 test -z "$(find "$package_output" -type l -print)"
-test "$(
-  find "$package_output" -type f -printf '%P\n' | sort
-)" = "$(
-  printf '%s\n' \
-    share/cryoforge/theme-packs/assets/cryoforge-denia/SOURCE.md \
-    share/cryoforge/theme-packs/assets/cryoforge-denia/preview.jpg \
-    share/cryoforge/theme-packs/assets/cryoforge-denia/wallpaper.jpg \
-    share/cryoforge/theme-packs/registry.json \
-    | sort
-)"
+python3 - "$installed_registry" "$package_output" <<'PY'
+import json
+import pathlib
+import sys
+
+registry_path = pathlib.Path(sys.argv[1])
+package_root = pathlib.Path(sys.argv[2])
+registry = json.loads(registry_path.read_text())
+expected = {
+    "share/cryoforge/theme-packs/registry.json",
+    "share/cryoforge/theme-packs/source-registry.json",
+}
+for pack in registry["packs"]:
+    if pack["kind"] != "curated":
+        continue
+    prefix = f"share/cryoforge/theme-packs/assets/{pack['id']}"
+    expected.update(
+        {
+            f"{prefix}/SOURCE.md",
+            f"{prefix}/preview.jpg",
+            f"{prefix}/wallpaper.jpg",
+        }
+    )
+actual = {
+    path.relative_to(package_root).as_posix()
+    for path in package_root.rglob("*")
+    if path.is_file()
+}
+assert actual == expected, (sorted(actual), sorted(expected))
+PY
 test -z "$(find "$package_output" -type f ! -perm 0444 -print)"
 test "$(sha256 "$installed_registry")" = "$(sha256 "$expected_registry_json")"
 
@@ -468,7 +472,7 @@ denia_palette = {
 assert set(current) == {"schemaVersion", "defaultPackId", "packs"}
 assert current["schemaVersion"] == 1
 assert current["defaultPackId"] == "neutral"
-assert len(current["packs"]) == 2
+assert len(current["packs"]) == 19
 
 assert set(historical) == {"schemaVersion", "defaultPackId", "packs"}
 assert historical["schemaVersion"] == 1
@@ -487,8 +491,7 @@ assert neutral["shell"] == shell
 assert neutral["preview"] == {
     "thumbnail": None,
     "description": (
-        "Wallpaper-independent fallback using the active CryoForge neutral "
-        "palette."
+        "Wallpaper-independent overlay using the CryoForge neutral palette."
     ),
     "swatches": [
         "background",
@@ -499,7 +502,7 @@ assert neutral["preview"] == {
     ],
 }
 
-denia = current["packs"][1]
+denia = next(pack for pack in current["packs"] if pack["id"] == "cryoforge-denia")
 assert denia == {
     "id": "cryoforge-denia",
     "displayName": "CryoForge Denia",
@@ -528,11 +531,19 @@ assert all(
     re.fullmatch(r"#[0-9a-f]{6}", value)
     for value in denia["palette"].values()
 )
-assert [pack["id"] for pack in current["packs"]] == [
-    "neutral",
-    "cryoforge-denia",
-]
-assert [pack["kind"] for pack in current["packs"]].count("curated") == 1
+current_ids = [pack["id"] for pack in current["packs"]]
+assert current_ids[0] == "neutral"
+assert len(current_ids) == len(set(current_ids))
+curated = [pack for pack in current["packs"] if pack["kind"] == "curated"]
+assert len(curated) == 18
+for pack in curated:
+    assert re.fullmatch(r"cryoforge-[a-z0-9-]+", pack["id"])
+    assert re.fullmatch(r"assets/[a-z0-9-]+/wallpaper\.jpg", pack["wallpaper"])
+    assert re.fullmatch(r"assets/[a-z0-9-]+/preview\.jpg", pack["preview"]["thumbnail"])
+    assert set(pack["palette"]) == semantic_keys
+    assert all(re.fullmatch(r"#[0-9a-f]{6}", value) for value in pack["palette"].values())
+    assert pack["shell"] == shell
+    assert 1 <= len(pack["preview"]["swatches"]) <= 6
 
 for foreground in (
     "foreground",
