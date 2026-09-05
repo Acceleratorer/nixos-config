@@ -151,13 +151,18 @@ consume the same packaged scheme data. CLI contracts isolate HOME and XDG
 state, disable all adapters, and prohibit numbered PTY access and terminal
 escape output.
 
-No daemon, timer, watcher, network route, automatic theme switching, or
-application adapter was added. Preview/Cancel/Back/Escape isolation and
-transactional Apply are covered by the Phase 19D contract. The Phase 20
-contract applies and validates all 18 curated packs, including their schemes,
-wallpapers, thumbnails, resolver identities, and generation progression. The
-gallery was visually reviewed before the accepted cold reboot; the Caelestia
-bar, notification ownership, session targets, and `greetd` remained healthy.
+No daemon, timer, watcher, network route, automatic theme switching, or live
+application integration was added. Phase 21A adds only a standalone,
+opt-in CryoForge-to-Serpantinum adapter package: it consumes the built
+resolver output, validates immutable store files and hashes, and emits a
+bounded Catppuccin-shaped JSON contract. It is not installed into any desktop
+profile and does not modify Serpantinum, Caelestia, or user state.
+Preview/Cancel/Back/Escape isolation and transactional Apply are covered by the
+Phase 19D contract. The Phase 20 contract applies and validates all 18 curated
+packs, including their schemes, wallpapers, thumbnails, resolver identities,
+and generation progression. The gallery was visually reviewed before the
+accepted cold reboot; the Caelestia bar, notification ownership, session
+targets, and `greetd` remained healthy.
 
 The initial implementation was commit
 `25a33eebc2d6c1af06b86f74590bc022797a43d6`, followed by the earlier Phase
@@ -336,7 +341,7 @@ Important paths:
   recovery presentation.
 - [`packages/`](packages/) contains derivations for the CryoForge shell,
   Chisa assets and previews, the real greeter, the real lock contract, Codex,
-  and Hyprexpo.
+  the standalone Serpantinum adapter, and Hyprexpo.
 - [`tests/`](tests/) contains focused contracts for the lock boundary, Chisa
   gallery, window feel, neutral application base, and screenshot flow.
 - [`docs/`](docs/) contains migration guidance and historical phase notes;
@@ -439,13 +444,18 @@ Completed:
   wallpaper-backed packs to Nexus. The all-curated-pack contract, full flake
   check, exact real-greeter build, Generation 57 activation/boot path, cold
   reboot, health checks, and visual gallery review passed.
+- Phase 21A — CryoForge-to-Serpantinum adapter foundation. The adapter is a
+  standalone, opt-in package and focused contract only; it consumes the built
+  resolver, converts validated CryoForge scheme colours to Serpantinum's
+  Catppuccin-shaped JSON, and performs no activation or state writes.
 
 Next exploration:
 
-- Read-only Serpantinum architecture comparison and a separately bounded
-  integration design. Serpantinum's Matugen-generated palette and wallpaper
-  state must not replace CryoForge's immutable registry and canonical
-  publisher without a new scoped phase and explicit contract.
+- A separately bounded live Serpantinum integration design. The Phase 21A
+  adapter does not replace Serpantinum's existing Matugen or wallpaper
+  behavior, and those live paths must not replace CryoForge's immutable
+  registry and canonical publisher without a new scoped phase and explicit
+  contract.
 
 Following phase:
 

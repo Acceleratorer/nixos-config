@@ -196,6 +196,36 @@
             ;
           registry = currentThemeRegistry;
         };
+      # Phase 21A historical projection begin
+      cryoforgeSerpantinumAdapter =
+        pkgs.callPackage ./packages/cryoforge-serpantinum-adapter.nix {
+          inherit cryoforgeThemeRuntime;
+          registry = currentThemeRegistry;
+        };
+      phase21aFixtureResolver = pkgs.writeShellScript
+        "phase21a-serpantinum-resolver-fixture" ''
+          set -euo pipefail
+          [[ $# -eq 0 ]]
+          exec ${pkgs.coreutils}/bin/cat -- \
+            "''${PHASE21A_RESOLVER_FIXTURE:?missing resolver fixture}"
+        '';
+      phase21aSymlinkFixture = pkgs.runCommand
+        "phase21a-serpantinum-symlink-fixture" { } ''
+          mkdir -p "$out"
+          ln -s \
+            ${cryoforgeThemeRuntime}/share/cryoforge/theme-runtime/schemes/chisa-pool.json \
+            "$out/scheme.json"
+          ln -s \
+            ${cryoforgeThemeRuntime}/share/cryoforge/theme-runtime/assets/chisa-pool/wallpaper.jpg \
+            "$out/wallpaper.jpg"
+        '';
+      phase21aTestSerpantinumAdapter =
+        pkgs.callPackage ./packages/cryoforge-serpantinum-adapter.nix {
+          inherit cryoforgeThemeRuntime;
+          registry = currentThemeRegistry;
+          resolver = phase21aFixtureResolver;
+        };
+      # Phase 21A historical projection end
       cryoforgeSystem = mkNixos {
         desktopProfile = "caelestia-cryoforge";
       };
@@ -424,6 +454,14 @@
         "      # Phase 19C focused check begin\n";
       phase19cCheckEnd =
         "      # Phase 19C focused check end\n";
+      phase21aProjectionStart =
+        "      # Phase 21A historical projection begin\n";
+      phase21aProjectionEnd =
+        "      # Phase 21A historical projection end\n";
+      phase21aPackageProjectionStart =
+        "      # Phase 21A package projection begin\n";
+      phase21aPackageProjectionEnd =
+        "      # Phase 21A package projection end\n";
       currentFlakeSource = builtins.readFile ./flake.nix;
       flakeWithoutProjection = removeDelimited
         "Phase 19C historical projection"
@@ -435,6 +473,17 @@
         phase19cCheckStart
         phase19cCheckEnd
         flakeWithoutProjection;
+      flakeWithoutPhase21a = removeDelimited
+        "Phase 21A historical projection"
+        phase21aProjectionStart
+        phase21aProjectionEnd
+        (
+          removeDelimited
+            "Phase 21A package projection"
+            phase21aPackageProjectionStart
+            phase21aPackageProjectionEnd
+            flakeWithoutPhase19cCheck
+        );
       pre19cFlakeSourceText = builtins.replaceStrings
         [
           "      caelestiaRealGreeter =\n        pkgs.callPackage\n          (realGreeterSourceBoundary + \"/packages/caelestia-real-greeter.nix\")\n          {\n            inherit caelestia-shell;\n            caelestiaChisaPool = caelestiaChisaPool;\n          };\n"
@@ -480,7 +529,7 @@
           ""
           ""
         ]
-        flakeWithoutPhase19cCheck;
+        flakeWithoutPhase21a;
       pre19cFlakeSource =
         assert nixpkgs.lib.assertMsg (
           builtins.hashString "sha256" pre19cFlakeSourceText
@@ -637,8 +686,11 @@
             "$out/desktop/caelestia/nexus/ThemePackGallery.qml" \
             "$out/desktop/themes/apply-theme-pack.sh" \
             "$out/desktop/themes/caelestia-schemes.nix" \
+            "$out/desktop/themes/serpantinum-adapter.sh" \
             "$out/packages/caelestia-cryoforge-theme-selector.nix" \
+            "$out/packages/cryoforge-serpantinum-adapter.nix" \
             "$out/packages/cryoforge-theme-runtime.nix" \
+            "$out/tests/phase21a" \
             "$out/tests/phase19c"
           install -m 0444 ${pre19cFlakeSource} "$out/flake.nix"
           install -m 0444 \
@@ -748,6 +800,9 @@
       cryoforge-theme-runtime = cryoforgeThemeRuntime;
       cryoforge-theme-packs = cryoforgeThemePacks;
       cryoforge-theme-publisher = cryoforgeThemePublisher;
+      # Phase 21A package projection begin
+      cryoforge-serpantinum-adapter = cryoforgeSerpantinumAdapter;
+      # Phase 21A package projection end
       hyprexpo = pkgs.callPackage ./packages/hyprexpo.nix { };
     };
 
@@ -1692,6 +1747,29 @@
             ${cryoforgeThemePacks} \
             ${phase19dTestThemePublisher} \
             ${phase19dTestThemeRuntime}
+          touch "$out"
+        '';
+      phase21a-serpantinum-adapter-contract =
+        pkgs.runCommand "phase21a-serpantinum-adapter-contract-tests" {
+          nativeBuildInputs = [
+            pkgs.bash
+            pkgs.coreutils
+            pkgs.findutils
+            pkgs.gnugrep
+            pkgs.gnused
+            pkgs.python3
+          ];
+        } ''
+          export PYTHON=${pkgs.python3}/bin/python3
+          export TMPDIR="$PWD/phase21a-tmp"
+          mkdir -p "$TMPDIR"
+          bash ${./tests/phase21a/test_serpantinum_adapter_contract.sh} \
+            ${./.} \
+            ${cryoforgeSerpantinumAdapter} \
+            ${phase21aTestSerpantinumAdapter} \
+            ${cryoforgeThemeRuntime} \
+            ${phase21aSymlinkFixture} \
+            ${./desktop/themes/serpantinum-adapter.sh}
           touch "$out"
         '';
     };
