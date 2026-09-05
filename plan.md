@@ -383,6 +383,21 @@ unsupported, or tampered public state fails closed to the Chisa fallback.
   check, the exact real-greeter build, Generation 57 boot path, cold reboot,
   visual gallery review, and post-boot health checks.
 
+### Phase 21A — CryoForge → Serpantinum adapter foundation
+
+- Added the standalone `cryoforge-serpantinum-adapter` package and focused
+  contract check.
+- The adapter consumes only the built CryoForge resolver output and a
+  build-time registry-derived ID/composition allowlist; it does not read or
+  modify publisher internals.
+- Resolver JSON, generated scheme JSON, store paths, regular immutable files,
+  and scheme/wallpaper SHA-256 values are validated before output.
+- CryoForge scheme colours are converted to Serpantinum's Catppuccin-shaped
+  colour object with explicit semantic-role mapping and `#`-prefixed values.
+- The adapter writes no HOME, Serpantinum, Caelestia, `/var/lib/cryoforge-theme`,
+  public-state, or activation state, and it is not wired into any desktop
+  profile, systemd service, or live activation path.
+
 ## Rejected or intentionally excluded work
 
 These decisions are part of the project history and must not be reintroduced
@@ -572,11 +587,12 @@ A phase is complete only when:
 - The change is committed directly to `main` and pushed.
 - README and this plan remain consistent with the repository state.
 
-R2, Phase 19A, Phase 19B, Phase 19C, Phase 19D, and Phase 20, including the
-wallpaper-persistence correction, cross-surface continuity, all-curated-pack
-contract, and Generation 57 cold-reboot checkpoint, are complete. The next
-work is a read-only Serpantinum architecture comparison followed by a
-separately scoped integration design. Serpantinum's Matugen-generated palette
-and wallpaper state must not replace CryoForge's immutable registry and
-canonical publisher without a new phase and explicit contract. Phase 19E
-bounded application integration remains a separate future decision.
+R2, Phase 19A, Phase 19B, Phase 19C, Phase 19D, Phase 20, and Phase 21A,
+including the wallpaper-persistence correction, cross-surface continuity,
+all-curated-pack contract, Generation 57 cold-reboot checkpoint, and the
+read-only Serpantinum adapter contract, are complete. The next work is a
+separately scoped live Serpantinum integration design. Serpantinum's
+Matugen-generated palette and wallpaper state must not replace CryoForge's
+immutable registry and canonical publisher without a new phase and explicit
+contract. Phase 19E bounded application integration remains a separate future
+decision.
