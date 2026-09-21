@@ -4,6 +4,10 @@
   inputs = {
     nixpkgs.url = "https://releases.nixos.org/nixos/26.05/nixos-26.05.6282.2f5a153c270b/nixexprs.tar.xz";
 
+    # Keep Python 3.10 available for legacy projects without changing the
+    # system's pinned package set or the CUDA Python 3.13 environment.
+    python310pkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
+
     home-manager = {
       url = "github:nix-community/home-manager/release-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -25,10 +29,11 @@
     };
   };
 
-  outputs = { nixpkgs, home-manager, caelestia-dots, caelestia-shell, ... }:
+  outputs = { nixpkgs, python310pkgs, home-manager, caelestia-dots, caelestia-shell, ... }:
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
+      python310 = python310pkgs.legacyPackages.${system}.python310;
       mkNixos = {
         cryoforgePackage ? caelestiaCryoforgeThemeSelector,
         desktopProfile ? "classic",
@@ -38,7 +43,7 @@
       }:
         nixpkgs.lib.nixosSystem {
           inherit system;
-          specialArgs = { inherit desktopProfile; } // extraSpecialArgs;
+          specialArgs = { inherit desktopProfile python310; } // extraSpecialArgs;
           modules =
             [
               ./configuration.nix

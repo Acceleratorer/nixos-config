@@ -2,7 +2,28 @@
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running ‘nixos-help’).
 
-{ config, pkgs, ... }:
+{ config, pkgs, python310, ... }:
+
+let
+  mlCudaPackages = pkgs.cudaPackages.overrideScope (_: cudaPrev: {
+    # PyTorch needs the NVSHMEM library, not its large test/example suite.
+    libnvshmem = cudaPrev.libnvshmem.overrideAttrs (oldAttrs: {
+      cmakeFlags = (oldAttrs.cmakeFlags or [ ]) ++ [
+        "-DNVSHMEM_BUILD_TESTS=OFF"
+        "-DNVSHMEM_BUILD_EXAMPLES=OFF"
+      ];
+    });
+  });
+  androidPackages = pkgs.androidenv.composeAndroidPackages {
+    platformVersions = [ "latest" ];
+    buildToolsVersions = [ "latest" ];
+    includeCmake = false;
+    includeEmulator = false;
+    includeNDK = false;
+    includeSystemImages = false;
+  };
+  androidStudio = pkgs.android-studio.withSdk androidPackages.androidsdk;
+in
 
 {
   imports =
@@ -11,6 +32,20 @@
       ./desktop-hyprland.nix
       ./desktop/regreet
     ];
+
+  # Keep the second internal SSD available as /mnt/data without blocking boot
+  # if the drive is temporarily unavailable.
+  fileSystems."/mnt/data" = {
+    device = "/dev/disk/by-uuid/3EE2FC81E2FC3F29";
+    fsType = "ntfs3";
+    options = [
+      "nofail"
+      "x-systemd.device-timeout=5s"
+      "uid=1000"
+      "gid=100"
+      "umask=022"
+    ];
+  };
 
   # Bootloader.
   boot.loader.systemd-boot.enable = true;
@@ -84,7 +119,7 @@
   users.users."accelra" = {
     isNormalUser = true;
     description = "accelra";
-    extraGroups = [ "networkmanager" "wheel" ];
+    extraGroups = [ "networkmanager" "wheel" "docker" "kvm" ];
     packages = with pkgs; [
     #  thunderbird
     ];
@@ -93,10 +128,61 @@
   # Install firefox.
   programs.firefox.enable = true;
 
-  # Allow unfree packages
-  nixpkgs.config.allowUnfree = true;
+  # Allow unfree packages and build CUDA libraries only for this GPU.
+  nixpkgs.config = {
+    allowUnfree = true;
+    android_sdk.accept_license = true;
+    cudaCapabilities = [ "8.6" ];
+  };
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
+
+  environment.sessionVariables = {
+    ANDROID_HOME = "${androidPackages.androidsdk}/libexec/android-sdk";
+    ANDROID_SDK_ROOT = "${androidPackages.androidsdk}/libexec/android-sdk";
+    JAVA_HOME = "${pkgs.jdk17}";
+  };
+
+  # Container and local-cluster tooling.
+  virtualisation.docker.enable = true;
+
+  # Local single-node Kafka broker for development.
+  services.apache-kafka = {
+    enable = true;
+    clusterId = "um-MdL6BSf6pam9fNRWu2w";
+    formatLogDirs = true;
+    jvmOptions = [
+      "-Xms256m"
+      "-Xmx768m"
+    ];
+    settings = {
+      "node.id" = 1;
+      "process.roles" = [
+        "broker"
+        "controller"
+      ];
+      listeners = [
+        "PLAINTEXT://127.0.0.1:9092"
+        "CONTROLLER://127.0.0.1:9093"
+      ];
+      "advertised.listeners" = [ "PLAINTEXT://127.0.0.1:9092" ];
+      "listener.security.protocol.map" = [
+        "PLAINTEXT:PLAINTEXT"
+        "CONTROLLER:PLAINTEXT"
+      ];
+      "controller.quorum.voters" = [ "1@127.0.0.1:9093" ];
+      "controller.listener.names" = [ "CONTROLLER" ];
+      "inter.broker.listener.name" = "PLAINTEXT";
+      "log.dirs" = [ "/var/lib/apache-kafka" ];
+      "num.partitions" = 3;
+      "default.replication.factor" = 1;
+      "min.insync.replicas" = 1;
+      "offsets.topic.replication.factor" = 1;
+      "transaction.state.log.replication.factor" = 1;
+      "transaction.state.log.min.isr" = 1;
+    };
+  };
+  systemd.services.apache-kafka.serviceConfig.StateDirectory = "apache-kafka";
 
   nix.gc = {
     automatic = true;
@@ -147,9 +233,129 @@
   	nodejs
 	(pkgs.callPackage ./packages/codex.nix { })
 	discord
+	obsidian
 	p7zip
 	rar
 	bubblewrap
+
+	# Containers and Kubernetes.
+	docker-compose
+	kubectl
+	kind
+	minikube
+	kubernetes-helm
+	k9s
+
+	# Streaming and event pipelines.
+	apacheKafka
+	kcat
+
+	# Kaggle CLI for datasets, notebooks, competitions, models, and benchmarks.
+	kaggle
+
+	# Developer essentials.
+	ripgrep
+	fd
+	jq
+	yq
+	tmux
+	direnv
+	git-lfs
+	pre-commit
+	just
+	uv
+	ruff
+
+	# Local data and media tools.
+	blender
+	duckdb
+	sqlite
+	mpv
+	ffmpeg
+	yt-dlp
+
+	# Container, backup, and cloud utilities.
+	lazydocker
+	restic
+	rclone
+
+	# Desktop communication.
+	telegram-desktop
+
+	# Document tools: PDF reader and Microsoft Office-compatible editor.
+	evince
+	libreoffice-fresh
+	pdfarranger
+	xournalpp
+	texstudio
+	texlive.combined.scheme-medium
+
+	# Android development.
+	androidStudio
+	androidPackages.androidsdk
+	jdk17
+	dotnet-sdk_9
+	kotlin
+	gradle
+
+	# CUDA-enabled machine-learning environment.
+	cudaPackages.cudatoolkit
+	(python3.withPackages (ps:
+	  let
+	    torchCuda = ps.torch-bin.override { cudaPackages = mlCudaPackages; };
+	    torchvisionCuda = ps.torchvision-bin.override {
+	      cudaPackages = mlCudaPackages;
+	      torch-bin = torchCuda;
+	    };
+	    accelerateCuda = ps.accelerate.override {
+	      torch = torchCuda;
+	      torchvision = torchvisionCuda;
+	    };
+	    peftCuda = ps.peft.override {
+	      accelerate = accelerateCuda;
+	      torch = torchCuda;
+	    };
+	    sentenceTransformersCuda = ps.sentence-transformers.override {
+	      accelerate = accelerateCuda;
+	      torch = torchCuda;
+	    };
+	  in [
+	    ps.numpy
+	    ps.pandas
+	    ps.polars
+	    ps.scipy
+	    ps.scikit-learn
+	    ps.matplotlib
+	    ps.seaborn
+	    ps.jupyterlab
+	    ps.ipykernel
+	    ps.transformers
+	    ps.datasets
+	    ps.opencv-python
+	    ps.scikit-image
+	    ps.xgboost
+	    ps.lightgbm
+	    ps.statsmodels
+	    ps.optuna
+	    ps.imbalanced-learn
+	    ps.plotly
+	    ps.openpyxl
+	    ps.duckdb
+	    accelerateCuda
+	    peftCuda
+	    sentenceTransformersCuda
+	    ps.onnx
+	    ps.onnxruntime
+	    torchvisionCuda
+	    torchCuda
+	    ps.tensorflowWithCuda
+	  ]))
+
+	# Compatibility interpreter for projects that have not adopted Python 3.13.
+	python310
+	(writeShellScriptBin "py310" ''
+	  exec ${python310}/bin/python3.10 "$@"
+	'')
 
   ];
 
