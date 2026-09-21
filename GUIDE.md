@@ -29,6 +29,29 @@ cd nixos-config
 
 Use the HTTPS clone URL if SSH authentication is not set up.
 
+Install Codex before doing the rest of the setup:
+
+```bash
+./scripts/bootstrap.sh codex
+codex
+```
+
+After hardware review, use the safe dry run:
+
+```bash
+./scripts/bootstrap.sh check
+```
+
+Activate the full workstation only after the dry run succeeds:
+
+```bash
+./scripts/bootstrap.sh all --yes
+```
+
+The bootstrap script does not guess hardware settings. It refuses full
+activation without `--yes`, and the configuration must still be adapted for
+the new machine as described below.
+
 Before building, generate a hardware declaration on the target machine:
 
 ```bash

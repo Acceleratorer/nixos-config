@@ -10,6 +10,34 @@ general-purpose NixOS distribution or a portable hardware profile.
 > repository on another machine. Build success does not prove that the
 > configuration is safe for different hardware.
 
+## New-machine quick start
+
+After cloning this repository on a new NixOS machine, install Codex first:
+
+```bash
+./scripts/bootstrap.sh codex
+codex
+```
+
+Then review the hardware-specific settings described in [GUIDE.md](GUIDE.md).
+Generate or merge the new machine's `hardware-configuration.nix`, then run a
+non-activating dry run:
+
+```bash
+./scripts/bootstrap.sh check
+```
+
+Only after the hardware review and dry run succeed, activate the full profile:
+
+```bash
+./scripts/bootstrap.sh all --yes
+```
+
+The script never activates the full system through the `codex` command. The
+`all` command requires the explicit `--yes` confirmation and uses the
+`nixos-caelestia-cryoforge-real-greeter` target by default. See
+[GUIDE.md](GUIDE.md) for rollback and recovery instructions.
+
 ## Stack and current target
 
 The flake pins the NixOS 26.05 release stack for `x86_64-linux`, with Home
